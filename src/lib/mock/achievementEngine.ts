@@ -343,10 +343,13 @@ export function useAchievementEngine() {
       
     };
 
-    tick();
+    const initialTimeout = setTimeout(tick, 100);
     const intv = setInterval(tick, 10000); 
 
-    return () => clearInterval(intv);
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(intv);
+    };
   }, []);
 }
 
