@@ -23,6 +23,8 @@ interface Props {
   onPinnedBannerClick?: () => void;
   onGroupSettingsClick?: () => void;
   onProfileClick?: () => void;
+  onVoiceCall?: () => void;
+  onVideoCall?: () => void;
 }
 
 export function ChatHeader({
@@ -41,7 +43,9 @@ export function ChatHeader({
   pinnedCount,
   onPinnedBannerClick,
   onGroupSettingsClick,
-  onProfileClick
+  onProfileClick,
+  onVoiceCall,
+  onVideoCall
 }: Props) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMoodReactions, setShowMoodReactions] = useState(false);
@@ -176,10 +180,18 @@ export function ChatHeader({
             </button>
           )}
           
-          <button className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+          <button 
+            onClick={onVideoCall}
+            className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            title="Video Call"
+          >
             <Video size={20} />
           </button>
-          <button className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+          <button 
+            onClick={onVoiceCall}
+            className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            title="Voice Call"
+          >
             <Phone size={20} />
           </button>
           

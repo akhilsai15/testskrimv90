@@ -22,6 +22,7 @@ import { getChatById } from '../lib/mock/mockChatDirectory';
 import { buildChallengeGameUrl } from '../lib/challengeFlow';
 import { SuggestedReplies } from '../components/SuggestedReplies';
 import { getSmartReplies } from '../lib/smartRepliesEngine';
+import { useCallStore } from '../store/callStore';
 
 const generateWaveform = (barCount = 40) => {
   return Array.from({ length: barCount }, () => {
@@ -58,6 +59,7 @@ const MOCK_MESSAGES: Message[] = [
 export default function ChatThreadScreen() {
   const navigate = useNavigate();
   const { id: chatId } = useParams();
+  const startCall = useCallStore(state => state.startCall);
   
   // Resolve who this chat is actually with, based on the :id route param,
   // instead of hardcoding a single name for every conversation.
@@ -728,6 +730,22 @@ export default function ChatThreadScreen() {
                 setReactionToast(null);
               }, 4000);
            }, 1500);
+        }}
+        onVoiceCall={() => {
+          startCall("audio", {
+            id: chatId || "unknown",
+            name: recipientUser.displayName,
+            avatar: recipientUser.avatar,
+            online: true
+          });
+        }}
+        onVideoCall={() => {
+          startCall("video", {
+            id: chatId || "unknown",
+            name: recipientUser.displayName,
+            avatar: recipientUser.avatar,
+            online: true
+          });
         }}
       />
 
