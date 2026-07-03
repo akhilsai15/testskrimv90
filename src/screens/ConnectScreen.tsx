@@ -492,7 +492,7 @@ export default function ConnectScreen() {
     const chatKey = contactUsername.replace('@', '');
     const existingMessages = customChats[chatKey] || [];
     const newMessage = {
-      id: `msg_${Date.now()}`,
+      id: `msg_${Date.now()}_r${Math.floor(Math.random() * 1000000)}`,
       sender: 'me',
       text: `Replied to your story: "${replyText}"`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -511,7 +511,7 @@ export default function ConnectScreen() {
     const chatKey = contactUsername.replace('@', '');
     const existingMessages = customChats[chatKey] || [];
     const newMessage = {
-      id: `msg_${Date.now()}`,
+      id: `msg_${Date.now()}_rx${Math.floor(Math.random() * 1000000)}`,
       sender: 'me',
       text: `Reacted to your story: ${emoji}`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

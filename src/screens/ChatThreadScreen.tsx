@@ -76,18 +76,47 @@ export default function ChatThreadScreen() {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) base = parsed;
       }
-      // Merge in any Spark shares / reposts sent via SparkViewer (skrimchat_custom_chats)
+      // Merge in any Spark shares / reposts / story reactions/replies sent via SparkViewer/Connect (skrimchat_custom_chats)
       const customChatsStr = localStorage.getItem('skrimchat_custom_chats');
       if (customChatsStr) {
         const customChats = JSON.parse(customChatsStr);
-        const incoming = customChats[chatId];
-        if (Array.isArray(incoming) && incoming.length > 0) {
+        
+        // Find potential keys for this conversation
+        const keysToTry: string[] = [chatId];
+        if (recipientUser.username) {
+          keysToTry.push(recipientUser.username);
+          keysToTry.push(recipientUser.username.replace('@', ''));
+        }
+        if (chatId.startsWith('custom_')) {
+          const userKey = chatId.replace('custom_', '');
+          keysToTry.push(userKey);
+          keysToTry.push(`custom_${userKey}`);
+        }
+        
+        // Collect all incoming messages across any matching keys
+        let incoming: any[] = [];
+        const matchedKeys: string[] = [];
+        
+        for (const k of keysToTry) {
+          if (k && Array.isArray(customChats[k]) && customChats[k].length > 0) {
+            incoming = [...incoming, ...customChats[k]];
+            matchedKeys.push(k);
+          }
+        }
+        
+        if (incoming.length > 0) {
           const existingIds = new Set(base.map((m: any) => m.id));
           const fresh = incoming.filter((m: any) => !existingIds.has(m.id));
           if (fresh.length > 0) {
-            base = [...base, ...fresh].sort((a: any, b: any) => (a.timestamp || 0) - (b.timestamp || 0));
+            base = [...base, ...fresh].sort((a: any, b: any) => {
+              const timeA = a.timestamp || parseFloat(a.id) || Date.now();
+              const timeB = b.timestamp || parseFloat(b.id) || Date.now();
+              return timeA - timeB;
+            });
             // Clear consumed custom chat entries so they don't duplicate on next load
-            delete customChats[chatId];
+            for (const k of matchedKeys) {
+              delete customChats[k];
+            }
             localStorage.setItem('skrimchat_custom_chats', JSON.stringify(customChats));
           }
         }
@@ -300,7 +329,7 @@ export default function ChatThreadScreen() {
 
   const handleSendMessage = (text: string, isPulsed: boolean = false) => {
     const newMessage: Message = {
-      id: Date.now().toString(),
+      id: Date.now().toString() + "_" + Math.floor(Math.random() * 1000000),
       sender: 'me',
       text,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -344,7 +373,7 @@ export default function ChatThreadScreen() {
         setTimeout(() => {
           setIsOtherTyping(false);
           const reply: Message = {
-             id: Date.now().toString(),
+             id: Date.now().toString() + "_" + Math.floor(Math.random() * 1000000),
              sender: 'them',
              type: 'text',
              text: 'I know right?! 🤯 So crazy',
