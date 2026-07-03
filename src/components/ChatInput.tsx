@@ -109,8 +109,9 @@ export function ChatInput({ currentMood, onSetMood, onSendMessage, onSendVoice, 
     setIsRecordingLocked(false);
     clearInterval(recordInterval.current);
     clearInterval(waveformInterval.current);
-    if (!cancel && recordingTime > 0) {
-      onSendVoice(recordingTime, generateWaveform(40));
+    const actualDuration = Math.max(1, Math.floor((Date.now() - recordStartTime.current) / 1000));
+    if (!cancel && actualDuration > 0) {
+      onSendVoice(actualDuration, generateWaveform(40));
     }
     setRecordingTime(0);
   };
@@ -434,6 +435,14 @@ export function ChatInput({ currentMood, onSetMood, onSendMessage, onSendVoice, 
               onPointerUp={(e) => {
                 e.currentTarget.releasePointerCapture(e.pointerId);
                 if (text.trim()) { handlePulsePressEnd(); return; }
+                
+                const holdDuration = Date.now() - recordStartTime.current;
+                if (holdDuration < 350) {
+                  // Quick tap/click: auto-lock the recording so the user can control it hands-free
+                  setIsRecordingLocked(true);
+                  return;
+                }
+
                 // Pointer capture on this button means the release event never
                 // reaches the Trash2/Send buttons even if the finger is over them.
                 // Check what's actually under the pointer and respect it.

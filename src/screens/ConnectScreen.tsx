@@ -289,6 +289,21 @@ export default function ConnectScreen() {
     { id: "custom_golu_fitness_goals", name: "Golu", username: "golu_fitness_goals", avatar: "https://i.pravatar.cc/150?img=10", online: true }
   ];
 
+  const getActivityForUser = (username?: string, displayName?: string) => {
+    const name = (username || displayName || '').toLowerCase();
+    if (name.includes('dolly')) return { emoji: '🍲', text: 'COOKING', color: 'from-pink-500/20 to-purple-500/10 border-pink-500/20 text-pink-400' };
+    if (name.includes('pappu')) return { emoji: '📚', text: 'CRAMMING', color: 'from-blue-500/20 to-indigo-500/10 border-blue-500/20 text-blue-400' };
+    if (name.includes('bappu')) return { emoji: '☕', text: 'CHAI TIME', color: 'from-amber-500/20 to-yellow-600/10 border-amber-500/20 text-amber-400' };
+    if (name.includes('sunita')) return { emoji: '🌌', text: 'GAZING', color: 'from-indigo-600/20 to-purple-900/10 border-indigo-500/20 text-indigo-300' };
+    if (name.includes('chikoo')) return { emoji: '🏋️', text: 'GYM SELFIE', color: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/20 text-emerald-400' };
+    if (name.includes('bablu')) return { emoji: '🔧', text: 'GARAGE', color: 'from-orange-500/20 to-red-500/10 border-orange-500/20 text-orange-400' };
+    if (name.includes('golu')) return { emoji: '🥟', text: 'SAMOSAS', color: 'from-yellow-500/20 to-amber-500/10 border-yellow-500/20 text-yellow-400' };
+    if (name.includes('raju')) return { emoji: '🎮', text: 'IN LOBBY', color: 'from-cyan-500/20 to-blue-500/10 border-cyan-500/20 text-cyan-400' };
+    if (name.includes('pinky')) return { emoji: '🌸', text: 'SELFIE', color: 'from-rose-400/20 to-pink-500/10 border-rose-400/20 text-rose-400' };
+    if (name.includes('munni')) return { emoji: '🎬', text: 'REEL EDIT', color: 'from-fuchsia-500/20 to-purple-600/10 border-fuchsia-500/20 text-fuchsia-400' };
+    return { emoji: '⚡', text: 'VIBING', color: 'from-purple-500/20 to-cyan-500/10 border-[#B026FF]/20 text-[#B026FF]' };
+  };
+
   const ALL_CHATS = [...customGroups, ...MOCK_CHATS];
   const totalUnread = ALL_CHATS.reduce((sum, c) => sum + (c.unread || 0), 0);
 
@@ -368,38 +383,87 @@ export default function ConnectScreen() {
       <div className="flex-1 overflow-y-auto w-full flex flex-col no-scrollbar pb-20 relative z-10">
           {/* Active Now Row */}
           {!isSearchFocused && (
-              <div className="mb-2">
-                 <div className="px-4 mb-2">
-                    <span className="text-[11px] font-bold text-gray-500 tracking-widest">ACTIVE NOW</span>
+              <div className="mb-4">
+                 <div className="px-4 mb-3 flex items-center justify-between">
+                    <span className="text-[11px] font-black text-gray-400 tracking-widest uppercase">LIVE VIBE STORIES</span>
+                    <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      {ACTIVE_MOCKS.length} ONLINE
+                    </span>
                  </div>
-                 <div className="flex gap-4 overflow-x-auto no-scrollbar px-4 pb-2 pt-1 w-full">
-                    {/* Your Story */}
-                    <div className="flex flex-col items-center gap-2 shrink-0 cursor-pointer w-14">
-                       <div className="relative w-[52px] h-[52px]">
-                           <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=You" className="w-full h-full rounded-full bg-white/10 border-2 border-transparent" />
-                           <div className="absolute right-0 bottom-0 w-4 h-4 bg-[#B026FF] rounded-full border-2 border-[#0A0A12] flex items-center justify-center">
-                              <span className="text-white text-[10px] font-bold leading-none -mt-0.5">+</span>
-                           </div>
-                       </div>
-                       <span className="text-[10px] text-gray-400 font-medium truncate w-full text-center">Your Story</span>
-                    </div>
+                 <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-3 pt-1 w-full snap-x">
+                    {/* Your Story Card */}
+                    <motion.div
+                      whileHover={{ scale: 1.04, y: -2 }}
+                      whileTap={{ scale: 0.96 }}
+                      className="relative w-[105px] h-[150px] rounded-2xl overflow-hidden shrink-0 cursor-pointer border border-white/5 bg-[#12121A] group/story snap-start"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black/95 z-10" />
+                      <img 
+                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=You" 
+                        className="absolute inset-0 w-full h-full object-cover opacity-25 group-hover/story:opacity-40 transition-opacity" 
+                        alt="Your avatar"
+                      />
+                      
+                      {/* Top plus badge with pink glow */}
+                      <div className="absolute top-3 left-3 z-20">
+                        <div className="w-9 h-9 rounded-full border-2 border-[#B026FF] flex items-center justify-center bg-[#B026FF]/20 relative shadow-[0_0_12px_rgba(176,38,255,0.4)]">
+                          <span className="text-white text-md font-black leading-none">+</span>
+                        </div>
+                      </div>
 
-                    {/* Active Contacts */}
-                    {ACTIVE_MOCKS.map(contact => (
-                       <div 
-                         key={contact.id} 
-                         className="flex flex-col items-center gap-2 shrink-0 cursor-pointer w-14 group/active"
-                         onClick={() => navigate(`/chat/${contact.id}`)}
-                       >
-                           <div className="relative w-[52px] h-[52px] group-hover/active:scale-105 transition-transform duration-200">
-                               {/* Neon Ring */}
-                               <div className="absolute inset-[-2px] rounded-full border-[2px] border-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.5)] animate-pulse" style={{animationDuration: '3s'}} />
-                               <img src={contact.avatar} className="w-full h-full rounded-full bg-white/10 relative z-10" />
-                               <div className="absolute right-0 bottom-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-[2.5px] border-[#0A0A12] z-20" />
-                           </div>
-                           <span className="text-[10px] text-white font-medium truncate w-14 text-center block group-hover/active:text-emerald-400 transition-colors">{contact.name}</span>
-                       </div>
-                    ))}
+                      <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-col gap-0.5">
+                        <span className="text-[9px] text-[#B026FF] font-black tracking-wider uppercase font-mono block">CREATE</span>
+                        <span className="text-[11px] text-white/90 font-extrabold drop-shadow truncate">Your Story</span>
+                      </div>
+                    </motion.div>
+
+                    {/* Active Contacts Cards */}
+                    {ACTIVE_MOCKS.map(contact => {
+                      const activity = getActivityForUser(contact.username, contact.name);
+                      return (
+                        <motion.div 
+                          key={contact.id} 
+                          whileHover={{ scale: 1.04, y: -2 }}
+                          whileTap={{ scale: 0.96 }}
+                          onClick={() => navigate(`/chat/${contact.id}`)}
+                          className="relative w-[105px] h-[150px] rounded-2xl overflow-hidden shrink-0 cursor-pointer border border-white/10 bg-[#161622] shadow-[0_8px_24px_rgba(0,0,0,0.4)] group/story snap-start transition-all"
+                        >
+                          {/* Card background glowing gradient or blurred wallpaper */}
+                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black/95 z-10" />
+                          <div 
+                            className="absolute inset-0 opacity-30 group-hover/story:opacity-50 transition-all duration-300 scale-105 group-hover/story:scale-110 blur-[1px] bg-cover bg-center"
+                            style={{ backgroundImage: `url(${contact.avatar})` }}
+                          />
+                          
+                          {/* Top Avatar with pulsing emerald border */}
+                          <div className="absolute top-3 left-3 z-20">
+                            <div className="relative w-9 h-9">
+                              <div className="absolute inset-[-2px] rounded-full border-2 border-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.5)] animate-pulse" style={{ animationDuration: '2.5s' }} />
+                              <img src={contact.avatar} className="w-full h-full rounded-full border border-black/50 object-cover relative z-10 bg-zinc-800" alt={contact.name} />
+                              <div className="absolute right-0 bottom-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#161622] z-20" />
+                            </div>
+                          </div>
+
+                          {/* Activity Badge inside the card */}
+                          <div className="absolute top-3 right-3 z-20">
+                            <div className="w-6 h-6 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-xs shadow-md">
+                              {activity.emoji}
+                            </div>
+                          </div>
+
+                          {/* Bottom Info */}
+                          <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-col gap-0.5">
+                            <span className="text-[9px] text-emerald-400 font-black tracking-wider uppercase font-mono block">
+                              {activity.text}
+                            </span>
+                            <span className="text-[12px] text-white font-extrabold truncate drop-shadow-md">
+                              {contact.name.split(' ')[0]}
+                            </span>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                  </div>
               </div>
           )}
