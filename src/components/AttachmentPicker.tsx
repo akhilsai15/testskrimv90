@@ -104,7 +104,7 @@ export function AttachmentPicker({ onSendPhoto, onSendVideo, onSendFile, onSendS
     switch (step) {
       case 'menu':
         return (
-          <div className="grid grid-cols-3 gap-y-6 gap-x-4 p-8">
+          <div className="grid grid-cols-3 gap-y-6 gap-x-4 pt-8 px-8 pb-32">
             {ATTACH_OPTIONS.map((opt) => (
               <motion.button 
                 key={opt.id}
@@ -147,7 +147,7 @@ export function AttachmentPicker({ onSendPhoto, onSendVideo, onSendFile, onSendS
             </div>
             <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFilePicked} />
             <div className="px-4 pb-2 text-[10px] uppercase font-bold text-white/40 tracking-wider">Recent Photos</div>
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex-1 overflow-y-auto px-4 pb-32">
                <div className="grid grid-cols-4 gap-2">
                  {MOCK_PHOTOS.map(p => (
                    <button 
@@ -179,7 +179,7 @@ export function AttachmentPicker({ onSendPhoto, onSendVideo, onSendFile, onSendS
                 ✓ Send
               </button>
             </div>
-            <div className="flex-1 flex flex-col p-4 items-center">
+            <div className="flex-1 flex flex-col p-4 items-center overflow-y-auto pb-32">
                {selectedItem.isUpload ? (
                  <img
                    src={selectedItem.uri}
@@ -250,7 +250,7 @@ export function AttachmentPicker({ onSendPhoto, onSendVideo, onSendFile, onSendS
               <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoFilePicked} />
             </div>
             <div className="px-4 py-2 text-[10px] uppercase font-bold text-white/40 tracking-wider">Recent Videos</div>
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex-1 overflow-y-auto px-4 pb-32">
                <div className="grid grid-cols-2 gap-2">
                  {MOCK_VIDEOS.map(v => (
                    <button 
@@ -282,7 +282,7 @@ export function AttachmentPicker({ onSendPhoto, onSendVideo, onSendFile, onSendS
               <input ref={fileInputRef} type="file" className="hidden" onChange={handleGenericFilePicked} />
             </div>
             <div className="px-4 py-2 text-[10px] uppercase font-bold text-white/40 tracking-wider">Recent Files</div>
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex-1 overflow-y-auto px-4 pb-32">
               <div className="flex flex-col gap-2">
                 {MOCK_FILES.map((f, i) => (
                   <button 
@@ -312,7 +312,7 @@ export function AttachmentPicker({ onSendPhoto, onSendVideo, onSendFile, onSendS
               <input type="text" placeholder="🔍 Search songs..." className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-neon-purple" />
             </div>
             <div className="px-4 py-2 text-[10px] uppercase font-bold text-white/40 tracking-wider">Trending Songs</div>
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex-1 overflow-y-auto px-4 pb-32">
               <div className="flex flex-col gap-3">
                 {MOCK_SONGS.map((s, i) => (
                   <div key={i} className="flex gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
@@ -344,7 +344,7 @@ export function AttachmentPicker({ onSendPhoto, onSendVideo, onSendFile, onSendS
                  <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
                  <div className="relative text-red-500 pb-8 animate-bounce"><MapPin size={48} fill="currentColor" className="text-white"/></div>
                </div>
-               <div className="h-28 bg-[#1A1A24] p-4 flex flex-col justify-between border-t border-white/10">
+               <div className="h-52 bg-[#1A1A24] p-4 pb-28 flex flex-col justify-between border-t border-white/10">
                  <div>
                    <h4 className="text-white font-bold text-sm">Nellore, Andhra Pradesh</h4>
                    <p className="text-white/50 text-xs">India</p>
