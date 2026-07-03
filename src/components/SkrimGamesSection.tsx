@@ -58,7 +58,6 @@ const RECENT_GAMES = [
 export function SkrimGamesSection() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("all");
-  const [showOfflineBanner, setShowOfflineBanner] = useState(true);
   const [coins, setCoins] = useState(() => getCoins());
   const [showCoinsInfo, setShowCoinsInfo] = useState(() => {
     try { return !localStorage.getItem('skrimchat_coins_info_seen'); } catch { return true; }
@@ -137,34 +136,6 @@ export function SkrimGamesSection() {
               </div>
               <button onClick={dismissCoinsInfo} className="shrink-0 text-yellow-200/50 hover:text-yellow-200">
                 <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Offline Banner */}
-        <AnimatePresence>
-          {showOfflineBanner && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-3 mb-8 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-emerald-400 text-lg">📴</span>
-                </div>
-                <div>
-                  <h4 className="text-emerald-400 font-bold text-sm">All games work offline!</h4>
-                  <p className="text-emerald-400/70 text-xs">Play anywhere, anytime ⚡</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowOfflineBanner(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-emerald-500/20 transition-colors"
-              >
-                <X className="w-4 h-4 text-emerald-400" />
               </button>
             </motion.div>
           )}
