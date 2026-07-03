@@ -448,61 +448,78 @@ export default function TicTacToeScreen() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Game Over Reset Button (Only if it's the final end) */}
-            <AnimatePresence>
-              {gameState === 'GAME_OVER' && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="w-full flex-col flex items-center justify-center pt-4"
-                >
-                  <div className="bg-black/60 backdrop-blur border border-white/10 rounded-2xl p-6 w-full text-center mb-4">
-                     <h3 className="text-xl font-black text-white mb-2">MATCH FINISHED</h3>
-                     <div className="text-3xl mb-4">
-                       {matchWinner === 'P1' ? (
-                          <span className="text-[#EBFF00] drop-shadow-[0_0_15px_rgba(235,255,0,0.5)]">PLAYER 1 WINS! 🏆</span>
-                       ) : matchWinner === 'P2' ? (
-                          <span className="text-[#B026FF] drop-shadow-[0_0_15px_rgba(176,38,255,0.5)]">{mode === 'AI'? 'AI WINS! 💀' : 'PLAYER 2 WINS! 🏆'}</span>
-                       ) : (
-                          <span className="text-white/70">IT'S A DRAW 🤝</span>
-                       )}
-                     </div>
-                     <div className="flex justify-center gap-6">
-                        <div className="text-center">
-                          <div className="text-sm text-white/50">P1</div>
-                          <div className="text-xl font-bold text-[#EBFF00]">{scores.p1}</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-sm text-white/50">Draws</div>
-                          <div className="text-xl font-bold text-white/70">{scores.draws}</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-sm text-white/50">{mode === 'AI' ? 'AI' : 'P2'}</div>
-                          <div className="text-xl font-bold text-[#B026FF]">{scores.p2}</div>
-                        </div>
-                     </div>
-                  </div>
-
-                  <div className="flex gap-3 w-full">
-                    <button 
-                      onClick={startGame}
-                      className="flex-1 py-4 font-bold bg-white/10 border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all flex justify-center items-center gap-2"
-                    >
-                      <RotateCcw className="w-5 h-5" /> REPLAY
-                    </button>
-                    <button 
-                      onClick={() => setGameState('MENU')}
-                      className="w-16 py-4 font-bold bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 fill-current transition-all flex justify-center items-center"
-                    >
-                      <Home className="w-5 h-5" />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Game Over Reset Button is now shown in a beautiful overlay below */}
 
           </div>
         )}
+
+        {/* Game Over Modal Overlay */}
+        <AnimatePresence>
+          {gameState === 'GAME_OVER' && (
+             <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+             >
+               <motion.div
+                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                 animate={{ opacity: 1, scale: 1, y: 0 }}
+                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                 className="bg-gradient-to-b from-[#151525] to-[#0A0A15] border border-white/10 p-6 rounded-3xl max-w-xs w-full text-center shadow-2xl relative"
+               >
+                 <Trophy className="w-16 h-16 mx-auto text-yellow-400 mb-3 drop-shadow-[0_0_15px_rgba(250,204,21,0.4)]" />
+                 
+                 <h2 className="text-sm font-bold text-white/50 uppercase tracking-widest mb-1">Match Finished</h2>
+                 
+                 <div className="text-2xl font-black mb-4">
+                   {matchWinner === 'P1' ? (
+                      <span className="text-[#EBFF00] drop-shadow-[0_0_15px_rgba(235,255,0,0.5)]">PLAYER 1 WINS! 🏆</span>
+                   ) : matchWinner === 'P2' ? (
+                      <span className="text-[#B026FF] drop-shadow-[0_0_15px_rgba(176,38,255,0.5)]">{mode === 'AI'? 'AI WINS! 💀' : 'PLAYER 2 WINS! 🏆'}</span>
+                   ) : (
+                      <span className="text-white/70">IT'S A DRAW 🤝</span>
+                   )}
+                 </div>
+
+                 <div className="bg-black/30 rounded-2xl p-4 mb-6 border border-white/5">
+                   <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-2">Final Scores</p>
+                   <div className="flex justify-around items-center">
+                      <div className="text-center">
+                        <div className="text-xs text-white/50 mb-0.5">P1</div>
+                        <div className="text-xl font-black text-[#EBFF00]">{scores.p1}</div>
+                      </div>
+                      <div className="h-8 w-px bg-white/10" />
+                      <div className="text-center">
+                        <div className="text-xs text-white/50 mb-0.5">Draws</div>
+                        <div className="text-xl font-black text-white/70">{scores.draws}</div>
+                      </div>
+                      <div className="h-8 w-px bg-white/10" />
+                      <div className="text-center">
+                        <div className="text-xs text-white/50 mb-0.5">{mode === 'AI' ? 'AI' : 'P2'}</div>
+                        <div className="text-xl font-black text-[#B026FF]">{scores.p2}</div>
+                      </div>
+                   </div>
+                 </div>
+
+                 <div className="flex flex-col gap-2.5">
+                   <button 
+                     onClick={startGame}
+                     className="w-full py-3.5 font-black text-white bg-gradient-to-r from-[#00F0FF] to-[#B026FF] rounded-xl hover:opacity-95 transition-all flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(0,240,255,0.25)] active:scale-95"
+                   >
+                     <RotateCcw className="w-5 h-5" /> PLAY AGAIN
+                   </button>
+                   <button 
+                     onClick={() => setGameState('MENU')}
+                     className="w-full py-3 font-bold bg-white/5 border border-white/10 text-white/70 rounded-xl hover:bg-white/10 transition-all flex justify-center items-center gap-2 active:scale-95 text-sm"
+                   >
+                     <Home className="w-4 h-4" /> MAIN MENU
+                   </button>
+                 </div>
+               </motion.div>
+             </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
