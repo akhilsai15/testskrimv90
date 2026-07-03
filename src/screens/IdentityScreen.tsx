@@ -929,8 +929,8 @@ export default function IdentityScreen() {
              {savedItems.length === 0 ? (
                 <div className="col-span-3 text-center py-20 text-gray-500 text-sm">No saved posts yet.</div>
              ) : savedItems.map((item, i) => {
-               const url = item.image || item.videoImageHover || item.videoImage;
-               const isVideo = item.id?.startsWith('reel');
+               const isVideo = item.id?.startsWith('reel') || item.id?.startsWith('vibe') || !!item.videoSrc;
+               const url = item.image || item.videoImageHover || item.videoImage || item.thumbnail;
                return (
                <motion.div 
                  initial={{ opacity: 0 }}
@@ -941,7 +941,7 @@ export default function IdentityScreen() {
                  onClick={() => setSelectedMedia({ 
                    index: i, 
                    type: isVideo ? 'vibe' : 'saved', 
-                   urls: savedItems.map(it => it.image || it.videoImageHover || it.videoImage),
+                   urls: savedItems.map(it => it.image || it.videoImageHover || it.videoImage || it.thumbnail),
                    users: savedItems.map(it => ({ username: it.handle || it.userName || it.user?.username || '@someone', avatar: it.avatar || it.userAvatar || it.user?.avatar }))
                  })}
                >

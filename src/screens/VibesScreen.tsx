@@ -2,13 +2,17 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
 import {
   Zap, MessageCircle, Share2, Bookmark, Volume2, VolumeX,
-  Music, Heart, Play, ChevronUp, ChevronDown, Search, X,
-  MoreHorizontal, Plus, Images, Video, RefreshCw,
+  Music, Heart, Play, Pause, ChevronUp, ChevronDown, Search, X,
+  MoreHorizontal, Plus, Images, Video, RefreshCw, Send, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { assembleVibesFeed, getDefaultMood, MOODS, MOCK_USERS, type VibePost } from '../lib/mock/skrimAlgorithm';
 import { incrementStat } from '../lib/mock/achievementEngine';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { MusicPicker } from '../components/MusicPicker';
+import { useSavedStore } from '../store/savedStore';
+import { ReactionRow } from '../components/ReactionRow';
+import { useNavigate } from 'react-router-dom';
+import { useFollowStatus, followUser, unfollowUser } from '../lib/mock/mockSocialGraph';
 
 // ─── helpers ─────────────────────────────────────────────────
 function fmt(n: number) {
@@ -115,6 +119,11 @@ function VibeCard({
   total: number;
   current: number;
 }) {
+  const { savePost, unsavePost, savedPosts } = useSavedStore();
+  const currentUser = useCurrentUser();
+  const navigate = useNavigate();
+  const followStatus = useFollowStatus(vibe.handle);
+
   const [liked, setLiked]   = useState(() => {
     try {
       if (!vibe?.id) return false;
@@ -122,13 +131,9 @@ function VibeCard({
       return Array.isArray(l) && l.includes(vibe.id);
     } catch { return false; }
   });
-  const [saved, setSaved]   = useState(() => {
-    try {
-      if (!vibe?.id) return false;
-      const s: string[] = JSON.parse(localStorage.getItem('skrimchat_vibe_saved') || '[]');
-      return Array.isArray(s) && s.includes(vibe.id);
-    } catch { return false; }
-  });
+  
+  const saved = savedPosts.includes(vibe?.id);
+
   const [pulses, setPulses] = useState(() => {
     try {
       if (!vibe?.id) return 0;
@@ -139,6 +144,123 @@ function VibeCard({
   const [commentCount, setCommentCount] = useState(() => vibe?.comments ?? 0);
   const [burst, setBurst]   = useState<{ x: number; y: number } | null>(null);
   const [showComments, setShowComments] = useState(false);
+
+  const [newComment, setNewComment] = useState('');
+  const [commentsList, setCommentsList] = useState<any[]>([]);
+
+  // Interactive timeline seeker state
+  const [progress, setProgress] = useState(0); // 0 to 100
+  const [duration, setDuration] = useState(15); // default duration
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    try {
+      if (!vibe?.id) return;
+      const stored = localStorage.getItem(`skrimchat_vibe_comments_list_${vibe.id}`);
+      if (stored) {
+        setCommentsList(JSON.parse(stored));
+      } else {
+        const initial = [
+          { id: '1', user: '@bappu_bhai', text: 'bhai ekdum fire hai 🔥', time: '1h ago', likes: 47 },
+          { id: '2', user: '@sunita_not', text: 'yaar yeh too good 😭', time: '2h ago', likes: 92 },
+          { id: '3', user: '@raju_3idiots_fan', text: 'iske jaisi content koi nahi banata seriously 💜', time: '3h ago', likes: 140 },
+          { id: '4', user: '@dolly_ka_dhaba', text: 'screenshot liya 📸 pure gold', time: '4h ago', likes: 21 },
+        ];
+        setCommentsList(initial);
+        localStorage.setItem(`skrimchat_vibe_comments_list_${vibe.id}`, JSON.stringify(initial));
+      }
+    } catch (e) {
+      setCommentsList([]);
+    }
+  }, [vibe?.id]);
+
+  const handleAddComment = () => {
+    if (!newComment.trim()) return;
+    const added = {
+      id: Date.now().toString(),
+      user: currentUser?.username || '@you',
+      text: newComment,
+      time: 'Just now',
+      likes: 0,
+    };
+    const updated = [added, ...commentsList];
+    setCommentsList(updated);
+    setNewComment('');
+    setCommentCount(c => c + 1);
+    try {
+      localStorage.setItem(`skrimchat_vibe_comments_list_${vibe.id}`, JSON.stringify(updated));
+      const cc: Record<string,number> = JSON.parse(localStorage.getItem('skrimchat_vibe_comments') || '{}');
+      cc[vibe.id] = (cc[vibe.id] || vibe.comments) + 1;
+      localStorage.setItem('skrimchat_vibe_comments', JSON.stringify(cc));
+    } catch (e) {}
+  };
+
+  const [activeReactionId, setActiveReactionId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(`skrimchat_vibe_reaction_${vibe?.id}`) || null;
+    } catch (e) {
+      return null;
+    }
+  });
+  
+  const [reactions, setReactions] = useState<Record<string, number>>(() => {
+    try {
+      if (!vibe?.id) return vibe?.reactions || {};
+      const stored = localStorage.getItem(`skrimchat_vibe_reactions_count_${vibe.id}`);
+      return stored ? JSON.parse(stored) : (vibe.reactions || {});
+    } catch {
+      return vibe?.reactions || {};
+    }
+  });
+
+  const handleReact = (rId: string | null, reactionObj?: any) => {
+    const oldId = activeReactionId;
+    setActiveReactionId(rId);
+    
+    setReactions(prev => {
+      const next = { ...prev };
+      if (oldId) {
+        next[oldId] = Math.max(0, (next[oldId] || 0) - 1);
+      }
+      if (rId) {
+        next[rId] = (next[rId] || 0) + 1;
+        if (reactionObj) {
+          // Trigger floating visual effect and toast
+          setBurst({ x: window.innerWidth / 2, y: window.innerHeight / 2.5 });
+          setToastMessage(`Reacted with ${reactionObj.emoji} ${reactionObj.name}! ⚡`);
+          setTimeout(() => setToastMessage(''), 1800);
+        }
+      }
+      try {
+        localStorage.setItem(`skrimchat_vibe_reactions_count_${vibe.id}`, JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    try {
+      if (rId) {
+        localStorage.setItem(`skrimchat_vibe_reaction_${vibe.id}`, rId);
+      } else {
+        localStorage.removeItem(`skrimchat_vibe_reaction_${vibe.id}`);
+      }
+    } catch (e) {}
+  };
+
+  const [toastMessage, setToastMessage] = useState('');
+
+  const handleShare = () => {
+    incrementStat('shares', 1);
+    const shareUrl = `${window.location.origin}/vibes?id=${vibe.id}`;
+    try {
+      navigator.clipboard.writeText(shareUrl);
+      setToastMessage('Link copied to clipboard! 🚀');
+    } catch (err) {
+      setToastMessage('Shared vibe with friends! 💜');
+    }
+    setTimeout(() => {
+      setToastMessage('');
+    }, 2000);
+  };
   const lastTap = useRef(0);
 
   const [isPlaying, setIsPlaying] = useState(true);
@@ -234,283 +356,469 @@ function VibeCard({
     lastTap.current = now;
   };
 
+  // Loop effect to simulate playback progress for image-only Vibes
+  useEffect(() => {
+    if (vibe.videoSrc) return; // Handled by video element's real timeupdate events
+    if (!isPlaying || !isActive) return;
+
+    const interval = setInterval(() => {
+      setCurrentTime(prev => {
+        const next = prev + 0.1;
+        if (next >= duration) {
+          setProgress(0);
+          return 0; // loop
+        }
+        setProgress((next / duration) * 100);
+        return next;
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, isActive, duration, vibe.videoSrc]);
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const cur = videoRef.current.currentTime;
+      const dur = videoRef.current.duration || 15;
+      setCurrentTime(cur);
+      setDuration(dur);
+      setProgress((cur / dur) * 100);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration || 15);
+    }
+  };
+
+  // Seeker timeline interaction callback
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    const newPercent = Math.min(Math.max((clickX / width) * 100, 0), 100);
+    setProgress(newPercent);
+    const newTime = (newPercent / 100) * duration;
+    setCurrentTime(newTime);
+    if (videoRef.current) {
+      videoRef.current.currentTime = newTime;
+    }
+    setToastMessage(`Skipped to ${newTime.toFixed(1)}s! ⚡`);
+    setTimeout(() => setToastMessage(''), 1500);
+  };
+
+  // Profile redirection handler
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const cleanVibeUser = vibe.handle.replace(/^@/, '');
+    const cleanCurrentUser = currentUser?.username?.replace(/^@/, '');
+    
+    if (cleanVibeUser === cleanCurrentUser) {
+      navigate('/identity');
+    } else {
+      navigate(`/profile/${cleanVibeUser}`);
+    }
+  };
+
+  // Social graph follow toggle callback
+  const handleFollowToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (followStatus.following) {
+      unfollowUser(vibe.handle);
+      setToastMessage(`Unfollowed ${vibe.user} 💔`);
+    } else {
+      followUser(vibe.handle);
+      setToastMessage(`Following ${vibe.user}! 💜`);
+      incrementStat('connectionsMade', 1);
+    }
+    setTimeout(() => setToastMessage(''), 2000);
+  };
+
+  const isMe = vibe.handle.replace(/^@/, '') === currentUser?.username?.replace(/^@/, '');
+
   const handleDragEnd = (_: any, info: any) => {
     if (info.offset.y < -60) onNext();
     if (info.offset.y >  60) onPrev();
     dragY.set(0);
   };
 
+  const handleTapMedia = (e: React.MouseEvent) => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      if (!liked) {
+        setLiked(true);
+        setPulses(p => {
+          const next = p + 1;
+          try {
+            const l: string[] = JSON.parse(localStorage.getItem('skrimchat_vibe_liked') || '[]');
+            if (!l.includes(vibe.id)) localStorage.setItem('skrimchat_vibe_liked', JSON.stringify([...l, vibe.id]));
+            const c: Record<string,number> = JSON.parse(localStorage.getItem('skrimchat_vibe_counts') || '{}');
+            c[vibe.id] = next;
+            localStorage.setItem('skrimchat_vibe_counts', JSON.stringify(c));
+          } catch (e) {}
+          return next;
+        });
+        incrementStat('reactionsSent', 1);
+        incrementStat('pulseScore', 3);
+      }
+      setBurst({ x: e.clientX, y: e.clientY });
+    } else {
+      setIsPlaying(p => !p);
+    }
+    lastTap.current = now;
+  };
+
   return (
-    <div className="relative w-full h-full overflow-hidden bg-black select-none">
-      {/* Background — a real <video> for user-uploaded clips, otherwise the
-          existing mock thumbnail image (mock Vibes have no actual video file). */}
-      {vibe.videoSrc ? (
-        <motion.video
-          ref={videoRef}
-          src={vibe.videoSrc}
-          autoPlay={isActive}
-          loop
-          muted={muted}
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ scale: imgScale }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
-        />
-      ) : (
-        <motion.img
-          src={vibe.thumbnail}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ scale: imgScale }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
-          draggable={false}
-        />
-      )}
+    <div className="w-full h-full bg-[#08080C] pt-24 pb-4 px-4 md:px-6 flex flex-col md:grid md:grid-cols-12 md:gap-6 text-white overflow-y-auto md:overflow-hidden select-none">
+      {/* LEFT COLUMN: Holographic Media Deck */}
+      <div className="md:col-span-7 lg:col-span-8 flex flex-col h-full justify-between gap-4 overflow-hidden min-h-[350px] md:min-h-0">
+        
+        {/* Holographic Media Frame */}
+        <div 
+          onClick={handleTapMedia}
+          className="relative flex-1 w-full bg-black/60 rounded-3xl border border-[#B026FF]/20 shadow-2xl shadow-[#B026FF]/10 overflow-hidden group cursor-pointer"
+        >
+          {vibe.videoSrc ? (
+            <motion.video
+              ref={videoRef}
+              src={vibe.videoSrc}
+              autoPlay={isActive}
+              loop
+              muted={muted}
+              playsInline
+              className="absolute inset-0 w-full h-full object-contain"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+            />
+          ) : (
+            <motion.img
+              src={vibe.thumbnail}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+              draggable={false}
+            />
+          )}
 
-      {/* Gradient overlays */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-black/30 pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
+          {/* Futuristic subtle grid overlay & scanline */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[size:100%_4px,6px_100%] pointer-events-none opacity-20" />
+          
+          {/* Edge glowing accents */}
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-[#00F0FF]/40 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-[#B026FF]/40 to-transparent" />
 
-      {/* Play/Pause icon overlay */}
-      <AnimatePresence>
-        {showPlayOverlay && (
-          <motion.div
-            key={showPlayOverlay}
-            initial={{ scale: 0.3, opacity: 0 }}
-            animate={{ scale: [0.6, 1.2, 1], opacity: [0, 0.9, 0.9, 0] }}
-            exit={{ scale: 1.5, opacity: 0 }}
-            transition={{ duration: 0.6, times: [0, 0.2, 0.8, 1] }}
-            className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center z-30 pointer-events-none"
-          >
-            {showPlayOverlay === 'play' ? (
-              <Play className="w-8 h-8 text-white fill-white ml-0.5" />
-            ) : (
-              <div className="flex gap-1.5 justify-center items-center">
-                <div className="w-2 h-6 bg-white rounded-full" />
-                <div className="w-2 h-6 bg-white rounded-full" />
-              </div>
+          {/* Toast Notification Container inside Frame */}
+          <AnimatePresence>
+            {toastMessage && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20, x: "-50%" }}
+                animate={{ opacity: 1, y: 0, x: "-50%" }}
+                exit={{ opacity: 0, y: -20, x: "-50%" }}
+                className="absolute top-6 left-1/2 z-30 bg-black/90 backdrop-blur-md px-4 py-2 flex items-center gap-2 rounded-full border border-white/20 select-none pointer-events-none"
+              >
+                <span className="text-white text-xs font-bold tracking-wider">{toastMessage}</span>
+              </motion.div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </AnimatePresence>
 
-      {/* Drag-to-swipe layer */}
-      <motion.div
-        className="absolute inset-0 z-10"
-        drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={0.18}
-        style={{ y: dragY }}
-        onDragEnd={handleDragEnd}
-        onClick={handleTap}
-      />
+          {/* Tap Play/Pause overlay */}
+          <AnimatePresence>
+            {!isPlaying && (
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 1.2, opacity: 0 }}
+                className="absolute inset-0 m-auto w-14 h-14 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center z-20 pointer-events-none shadow-lg shadow-black/40"
+              >
+                <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      {/* ── Top bar ─────────────────────────────── */}
-      <div className="absolute top-4 right-4 z-20 pt-safe">
-        <motion.button whileTap={{ scale: 0.8 }}
-          className="w-9 h-9 rounded-full bg-black/40 backdrop-blur flex items-center justify-center border border-white/10"
-        >
-          <MoreHorizontal className="w-4 h-4 text-white" />
-        </motion.button>
-      </div>
-
-      {/* ── Right action column ──────────────────── */}
-      <div className="absolute right-3 bottom-36 z-20 flex flex-col gap-5 items-center">
-        {/* Avatar + follow */}
-        <div className="relative">
-          <img src={vibe.avatar} alt={vibe.user} className="w-12 h-12 rounded-full border-2 border-[#B026FF] object-cover" />
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-[#B026FF] flex items-center justify-center shadow-lg shadow-[#B026FF]/40">
-            <Plus className="w-3 h-3 text-white" />
-          </div>
+          {/* Double-tap burst */}
+          {burst && (
+            <HeartBurst x={burst.x} y={burst.y} onDone={() => setBurst(null)} />
+          )}
         </div>
 
-        {/* Pulse (like) */}
-        <ActionBtn
-          icon={<Zap className={`w-6 h-6 ${liked ? 'text-[#B026FF] fill-[#B026FF]' : 'text-white'}`} />}
-          label={fmt(pulses)}
-          active={liked}
-          color="#B026FF"
-          onClick={() => {
-            setLiked(l => {
-              const next = !l;
-              setPulses(p => {
-                const newP = next ? p + 1 : p - 1;
-                try {
-                  const arr: string[] = JSON.parse(localStorage.getItem('skrimchat_vibe_liked') || '[]');
-                  const updated = next ? [...arr.filter(x => x !== vibe.id), vibe.id] : arr.filter(x => x !== vibe.id);
-                  localStorage.setItem('skrimchat_vibe_liked', JSON.stringify(updated));
-                  const c: Record<string,number> = JSON.parse(localStorage.getItem('skrimchat_vibe_counts') || '{}');
-                  c[vibe.id] = newP;
-                  localStorage.setItem('skrimchat_vibe_counts', JSON.stringify(c));
-                } catch (e) {}
-                return newP;
-              });
-              return next;
-            });
-            incrementStat('reactionsSent', 1);
-          }}
-        />
-
-        {/* Comments */}
-        <ActionBtn
-          icon={<MessageCircle className="w-6 h-6 text-white" />}
-          label={fmt(commentCount)}
-          onClick={() => setShowComments(true)}
-        />
-
-        {/* Share */}
-        <ActionBtn
-          icon={<Share2 className="w-6 h-6 text-white" />}
-          label={fmt(vibe.shares)}
-          onClick={() => incrementStat('shares', 1)}
-        />
-
-        {/* Save */}
-        <ActionBtn
-          icon={<Bookmark className={`w-6 h-6 ${saved ? 'text-[#00F0FF] fill-[#00F0FF]' : 'text-white'}`} />}
-          label={fmt(vibe.saves)}
-          active={saved}
-          color="#00F0FF"
-          onClick={() => setSaved(s => {
-            const next = !s;
-            try {
-              const arr: string[] = JSON.parse(localStorage.getItem('skrimchat_vibe_saved') || '[]');
-              const updated = next ? [...arr.filter(x => x !== vibe.id), vibe.id] : arr.filter(x => x !== vibe.id);
-              localStorage.setItem('skrimchat_vibe_saved', JSON.stringify(updated));
-            } catch (e) {}
-            return next;
-          })}
-        />
-
-        {/* Mute/Sound Toggle */}
-        <ActionBtn
-          icon={muted ? <VolumeX className="w-6 h-6 text-white" /> : <Volume2 className="w-6 h-6 text-white" />}
-          label={muted ? 'Mute' : 'Sound'}
-          onClick={onToggleMute}
-        />
-
-        {/* Rotating vinyl */}
-        <motion.div
-          animate={isActive ? { rotate: 360 } : {}}
-          transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
-          className="w-11 h-11 rounded-full bg-gradient-to-br from-[#B026FF] to-[#00F0FF] flex items-center justify-center shadow-lg shadow-[#B026FF]/40 border-2 border-white/20"
-        >
-          <Music className="w-5 h-5 text-white" />
-        </motion.div>
-      </div>
-
-      {/* ── Bottom info ──────────────────────────── */}
-      <div className="absolute left-0 right-16 bottom-24 z-20 px-4 flex flex-col gap-2">
-        {/* User info */}
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-white text-sm drop-shadow">{vibe.user}</span>
-          <span className="text-[10px] text-[#B026FF] font-bold border border-[#B026FF]/40 px-1.5 py-0.5 rounded-full">
-            {vibe.creatorTier}
-          </span>
-        </div>
-        <span className="text-white/50 text-xs">{vibe.handle}</span>
-
-        <Caption text={vibe.caption} />
-
-        {/* Audio ticker */}
-        <div className="flex items-center gap-2 bg-black/30 backdrop-blur rounded-full px-3 py-1.5 w-fit mt-1">
-          <Music className="w-3 h-3 text-[#B026FF] shrink-0" />
-          <div className="overflow-hidden w-40">
-            <motion.span
-              className="text-[11px] text-white/80 whitespace-nowrap block"
-              animate={{ x: [0, -120, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-            >
-              {vibe.audio} &nbsp;&nbsp;&nbsp; {vibe.audio}
-            </motion.span>
-          </div>
-        </div>
-
-        {/* Vibe score badge */}
-        <div className="flex items-center gap-1.5 mt-1">
-          <div
-            className="px-2 py-0.5 rounded-full text-[10px] font-black border"
-            style={{
-              borderColor: vibe.vibeScore > 75 ? '#FF2D87' : vibe.vibeScore > 50 ? '#FF6B00' : '#4488FF',
-              color:       vibe.vibeScore > 75 ? '#FF2D87' : vibe.vibeScore > 50 ? '#FF6B00' : '#4488FF',
-              background:  vibe.vibeScore > 75 ? 'rgba(255,45,135,0.12)' : vibe.vibeScore > 50 ? 'rgba(255,107,0,0.12)' : 'rgba(68,136,255,0.12)',
-            }}
+        {/* Console Deck Control Bar (Playbar) */}
+        <div className="flex items-center justify-between bg-[#0F0F15] border border-white/5 rounded-2xl p-3 px-4 w-full select-none gap-3">
+          
+          {/* Left Controls: Play / Pause */}
+          <button 
+            onClick={() => setIsPlaying(p => !p)} 
+            className="p-2.5 rounded-xl bg-white/5 hover:bg-[#B026FF]/20 text-white transition-colors active:scale-90"
           >
-            {vibe.vibeScore > 75 ? '🚀 NOVA' : vibe.vibeScore > 50 ? '🔥 HOT' : '😐 WARMING'}
-          </div>
-          <span className="text-white/30 text-[10px]">Vibe Score {vibe.vibeScore.toFixed(0)}</span>
-        </div>
-      </div>
+            {isPlaying ? <Pause className="w-4 h-4 text-[#00F0FF]" /> : <Play className="w-4 h-4 text-[#B026FF] fill-[#B026FF]" />}
+          </button>
 
-      {/* ── Swipe hint arrows ───────────────────── */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-8 opacity-30 pointer-events-none">
-        <ChevronUp className="w-5 h-5 text-white" />
-        <ChevronDown className="w-5 h-5 text-white" />
-      </div>
-
-      {/* Heart burst animation */}
-      {burst && (
-        <HeartBurst x={burst.x} y={burst.y} onDone={() => setBurst(null)} />
-      )}
-
-      {/* Comments drawer */}
-      <AnimatePresence>
-        {showComments && (
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30 }}
-            className="absolute bottom-0 left-0 right-0 z-50 bg-[#0F0F0F]/95 backdrop-blur-xl rounded-t-3xl pt-4 pb-8"
-            style={{ height: '65%' }}
+          {/* Center Seeker Line */}
+          <div 
+            onClick={handleSeek}
+            className="flex-1 h-2 bg-white/10 rounded-full relative cursor-pointer group/seeker"
+            title="Click to Seek Vibe Progress"
           >
-            <div className="flex items-center justify-between px-5 mb-4">
-              <span className="font-bold text-white">{fmt(commentCount)} Comments</span>
-              <button onClick={() => setShowComments(false)}>
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
+            {/* Click hit box padding */}
+            <div className="absolute inset-y-[-6px] inset-x-0 cursor-pointer" />
+            
+            <div className="absolute inset-0 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-[#B026FF] to-[#00F0FF] rounded-full transition-all duration-100 ease-out"
+                style={{ width: `${progress}%` }}
+              />
             </div>
-            <div className="flex-1 overflow-y-auto px-5 space-y-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex gap-3">
-                  <img src={`https://i.pravatar.cc/150?img=${i + 20}`} className="w-9 h-9 rounded-full object-cover shrink-0" alt="" />
-                  <div>
-                    <span className="text-[#B026FF] text-xs font-bold">@user_{i + 1} </span>
-                    <span className="text-white/80 text-sm">
-                      {["bhai ekdum fire hai 🔥", "yaar yeh too good 😭", "iske jaisi content koi nahi banata seriously 💜",
-                        "screenshot liya 📸 pure gold", "share kardunga aaj raat ko 🚀", "nostalgia hit kiya yaar ❤️"][i]}
-                    </span>
-                    <div className="text-white/30 text-xs mt-0.5">{i + 1}h ago · {(i + 1) * 47} ⚡</div>
+            
+            {/* Seeker knob on hover */}
+            <div 
+              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF] opacity-0 group-hover/seeker:opacity-100 transition-opacity pointer-events-none"
+              style={{ left: `calc(${progress}% - 6px)` }}
+            />
+          </div>
+
+          {/* Audio Sound Toggle */}
+          <button 
+            onClick={onToggleMute} 
+            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors active:scale-90"
+          >
+            {muted ? <VolumeX className="w-4 h-4 text-gray-500" /> : <Volume2 className="w-4 h-4 text-[#00F0FF]" />}
+          </button>
+
+          {/* Right Controls: Deck Navigation (Prev / Next) */}
+          <div className="flex gap-1.5 border-l border-white/10 pl-3">
+            <button 
+              onClick={onPrev} 
+              className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 transition-colors active:scale-90"
+              title="Previous Vibe Deck"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={onNext} 
+              className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 transition-colors active:scale-90"
+              title="Next Vibe Deck"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      {/* RIGHT COLUMN: Vibe Telemetry & Interaction Console */}
+      <div className="md:col-span-5 lg:col-span-4 flex flex-col h-full gap-4 overflow-hidden min-h-[450px] md:min-h-0">
+        
+        {/* Main Interface Console Board */}
+        <div className="flex-1 bg-[#0D0D14]/90 backdrop-blur-lg border border-white/10 rounded-3xl p-4 flex flex-col gap-4 overflow-hidden shadow-2xl shadow-[#B026FF]/5">
+          
+          {/* Creator Profile Header */}
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <div className="flex items-center gap-3">
+              <img 
+                src={vibe.avatar} 
+                alt={vibe.user} 
+                onClick={handleProfileClick}
+                className="w-10 h-10 rounded-full border border-[#B026FF]/60 object-cover shadow-inner cursor-pointer hover:border-[#00F0FF] transition-colors" 
+              />
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span 
+                    onClick={handleProfileClick}
+                    className="font-bold text-sm text-white hover:text-[#B026FF] cursor-pointer transition-colors"
+                  >
+                    {vibe.user}
+                  </span>
+                  <span className="text-[9px] text-[#B026FF] font-extrabold border border-[#B026FF]/40 px-2 py-0.5 rounded-full uppercase tracking-wider bg-[#B026FF]/10 select-none">
+                    {vibe.creatorTier}
+                  </span>
+                </div>
+                <span 
+                  onClick={handleProfileClick}
+                  className="text-xs text-white/40 block leading-tight hover:text-white cursor-pointer transition-colors"
+                >
+                  {vibe.handle}
+                </span>
+              </div>
+            </div>
+            {!isMe && (
+              <button 
+                onClick={handleFollowToggle}
+                className={`text-[10px] font-black px-3 py-1.5 rounded-xl tracking-widest transition-all active:scale-95 border ${
+                  followStatus.following 
+                    ? 'text-white/40 bg-white/5 border-white/10 hover:bg-white/10' 
+                    : 'text-[#00F0FF] bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 border-[#00F0FF]/30'
+                }`}
+              >
+                {followStatus.following ? 'FOLLOWING' : 'FOLLOW'}
+              </button>
+            )}
+          </div>
+
+          {/* Vibe Meter / Telemetry Gauge */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-mono text-white/50 tracking-wider">
+              <span>VIBE TELEMETRY_</span>
+              <span className="font-bold text-[#FF2D87]">
+                {vibe.vibeScore > 75 ? '🚀 NOVA' : '🔥 ACTIVE'}
+              </span>
+            </div>
+            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/5">
+              <div 
+                className="h-full bg-gradient-to-r from-[#B026FF] to-[#00F0FF]"
+                style={{ width: `${vibe.vibeScore}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[9px] text-white/40 font-mono tracking-tight">
+              <span>SCORE: {vibe.vibeScore.toFixed(0)} pts</span>
+              <span>SYSTEM ONLINE</span>
+            </div>
+          </div>
+
+          {/* Caption */}
+          <div className="bg-white/5 rounded-2xl p-3 border border-white/5 text-xs max-h-[72px] overflow-y-auto custom-scrollbar">
+            <Caption text={vibe.caption} />
+          </div>
+
+          {/* Social Action Grid */}
+          <div className="grid grid-cols-4 gap-2">
+            
+            {/* Pulse Action */}
+            <button 
+              onClick={() => {
+                setLiked(l => {
+                  const next = !l;
+                  setPulses(p => {
+                    const newP = next ? p + 1 : p - 1;
+                    try {
+                      const arr: string[] = JSON.parse(localStorage.getItem('skrimchat_vibe_liked') || '[]');
+                      const updated = next ? [...arr.filter(x => x !== vibe.id), vibe.id] : arr.filter(x => x !== vibe.id);
+                      localStorage.setItem('skrimchat_vibe_liked', JSON.stringify(updated));
+                      const c: Record<string,number> = JSON.parse(localStorage.getItem('skrimchat_vibe_counts') || '{}');
+                      c[vibe.id] = newP;
+                      localStorage.setItem('skrimchat_vibe_counts', JSON.stringify(c));
+                    } catch (e) {}
+                    return newP;
+                  });
+                  return next;
+                });
+                incrementStat('reactionsSent', 1);
+                incrementStat('pulseScore', 3);
+              }}
+              className={`p-2.5 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all active:scale-95 ${
+                liked 
+                  ? 'bg-[#B026FF]/15 border-[#B026FF] text-[#B026FF] shadow-lg shadow-[#B026FF]/10' 
+                  : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+              }`}
+              title="Pulse (Like)"
+            >
+              <Zap className={`w-4 h-4 ${liked ? 'fill-[#B026FF]' : ''}`} />
+              <span className="text-[10px] font-bold font-mono">{fmt(pulses)}</span>
+            </button>
+
+            {/* Save Action */}
+            <button 
+              onClick={() => {
+                if (saved) {
+                  unsavePost(vibe.id);
+                } else {
+                  savePost(vibe.id, vibe);
+                }
+              }}
+              className={`p-2.5 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all active:scale-95 ${
+                saved 
+                  ? 'bg-[#00F0FF]/15 border-[#00F0FF] text-[#00F0FF] shadow-lg shadow-[#00F0FF]/10' 
+                  : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+              }`}
+              title="Save to Identity"
+            >
+              <Bookmark className={`w-4 h-4 ${saved ? 'fill-[#00F0FF]' : ''}`} />
+              <span className="text-[10px] font-bold font-mono">{fmt(vibe.saves)}</span>
+            </button>
+
+            {/* Share Action */}
+            <button 
+              onClick={handleShare}
+              className="p-2.5 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:bg-white/10 hover:text-white flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
+              title="Share Link"
+            >
+              <Share2 className="w-4 h-4" />
+              <span className="text-[10px] font-bold font-mono">{fmt(vibe.shares)}</span>
+            </button>
+
+            {/* Audio Widget */}
+            <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5 text-white/60 flex flex-col items-center justify-center gap-1 overflow-hidden">
+              <Music className="w-4 h-4 text-[#B026FF] animate-pulse" />
+              <span className="text-[8px] font-bold text-center truncate w-full tracking-tighter" title={vibe.audio}>
+                {vibe.audio?.split('·')[0] || 'Audio'}
+              </span>
+            </div>
+
+          </div>
+
+          {/* Reaction Sparks Container */}
+          <div className="bg-white/5 p-2 rounded-2xl border border-white/5 flex items-center justify-center">
+            <ReactionRow
+              initialReactions={reactions}
+              activeReactionId={activeReactionId}
+              onReact={handleReact}
+              className="scale-95 origin-center w-full justify-around"
+            />
+          </div>
+
+          {/* Direct Comments Console Feed */}
+          <div className="flex-1 flex flex-col bg-black/40 rounded-2xl border border-white/5 p-3 overflow-hidden">
+            <div className="text-[9px] font-mono text-white/40 mb-2 tracking-wider flex items-center justify-between border-b border-white/5 pb-1 select-none">
+              <span>SECURE_COMMENTS_STREAM</span>
+              <span>{fmt(commentCount)} NODES</span>
+            </div>
+            
+            {/* Scrollable comments list */}
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[160px] md:max-h-none">
+              {commentsList.map((c, i) => (
+                <div key={c.id || i} className="flex gap-2 text-xs">
+                  <img src={`https://i.pravatar.cc/150?img=${(i + 20) % 70}`} className="w-6 h-6 rounded-full object-cover shrink-0 border border-white/10" alt="" />
+                  <div className="flex-1 bg-white/5 p-2 rounded-xl border border-white/5">
+                    <div className="flex justify-between text-[9px] text-white/30 mb-0.5 font-mono">
+                      <span className="font-bold text-[#B026FF]">{c.user}</span>
+                      <span>{c.time}</span>
+                    </div>
+                    <p className="text-white/80 leading-normal text-[11px]">{c.text}</p>
                   </div>
                 </div>
               ))}
+              {commentsList.length === 0 && (
+                <div className="text-center py-8 text-white/30 text-xs">No entries. Broadcast a comment node below!</div>
+              )}
             </div>
-            {/* Comment input */}
-            <div className="px-4 mt-3 flex gap-2 items-center">
-              <div className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-sm text-white/50">
-                Add a comment…
-              </div>
+
+            {/* Direct Comment Input Bar */}
+            <form onSubmit={(e) => { e.preventDefault(); handleAddComment(); }} className="flex gap-1.5 mt-2 pt-2 border-t border-white/5">
+              <input
+                type="text"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Inject comment..."
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#B026FF] placeholder-white/20 font-sans"
+              />
               <button
-                className="w-10 h-10 rounded-full bg-[#B026FF] flex items-center justify-center"
-                onClick={() => {
-                  setCommentCount(c => c + 1);
-                  try {
-                    const cc: Record<string,number> = JSON.parse(localStorage.getItem('skrimchat_vibe_comments') || '{}');
-                    cc[vibe.id] = (cc[vibe.id] || vibe.comments) + 1;
-                    localStorage.setItem('skrimchat_vibe_comments', JSON.stringify(cc));
-                  } catch (e) {}
-                }}
+                type="submit"
+                className="px-3 rounded-xl bg-[#B026FF] hover:bg-[#B026FF]/80 text-white flex items-center justify-center transition-colors shrink-0 active:scale-95"
               >
-                <Zap className="w-4 h-4 text-white fill-white" />
+                <Send className="w-3.5 h-3.5" />
               </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </form>
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
   );
 }
@@ -959,7 +1267,7 @@ export default function VibesScreen() {
   return (
     <div ref={containerRef} className="relative w-full h-full min-h-[500px] bg-black overflow-hidden flex flex-col">
       {/* Filter tabs — top overlay */}
-      <div className="absolute top-7 left-0 right-0 z-30">
+      <div className="absolute top-7 left-0 right-16 z-30">
         <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar pb-1">
           {FILTERS.map(f => (
             <button
@@ -976,6 +1284,15 @@ export default function VibesScreen() {
           ))}
         </div>
       </div>
+
+      {/* Create Vibe Floating Button on Top Right (prevents overlapping bottom music icons) */}
+      <motion.button
+        whileTap={{ scale: 0.88 }}
+        onClick={() => setIsCreateOpen(true)}
+        className="absolute top-7 right-4 z-30 w-10 h-10 rounded-full bg-gradient-to-br from-[#B026FF] to-[#00F0FF] flex items-center justify-center shadow-lg shadow-[#B026FF]/40 border border-white/20"
+      >
+        <Plus className="w-5 h-5 text-white" />
+      </motion.button>
 
       {/* Vibe Cards — full-screen snap scroll */}
       <div 
@@ -1011,21 +1328,6 @@ export default function VibesScreen() {
           </div>
         )}
       </div>
-
-      {/* Counter pill */}
-      <div className="absolute top-16 right-4 z-30 bg-black/50 backdrop-blur rounded-full px-2.5 py-1 text-[10px] text-white/60 font-bold pointer-events-none">
-        {currentIdx + 1} / {vibes.length}
-      </div>
-
-      {/* Create Vibe — there was previously no way to post one at all;
-          this is the equivalent of Pulse's "+" composer entry point. */}
-      <motion.button
-        whileTap={{ scale: 0.88 }}
-        onClick={() => setIsCreateOpen(true)}
-        className="absolute bottom-24 right-4 z-30 w-14 h-14 rounded-full bg-gradient-to-br from-[#B026FF] to-[#00F0FF] flex items-center justify-center shadow-lg shadow-[#B026FF]/40 border-2 border-white/10"
-      >
-        <Plus className="w-7 h-7 text-white" />
-      </motion.button>
 
       <VibeCreateSheet
         isOpen={isCreateOpen}
