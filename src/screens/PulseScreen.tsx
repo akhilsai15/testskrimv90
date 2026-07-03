@@ -20,7 +20,7 @@ import { PulseCommentsSheet, PulseReshareSheet, PulseSendSheet } from '../compon
 import { generateMockStatsForBadge } from '../lib/mock/mockBadges';
 import { incrementStat } from '../lib/mock/achievementEngine';
 import { getSparks } from '../lib/mock/mockServices';
-import { assembleFeed, getDefaultMood, MOODS, MOCK_USERS, VELOCITY_MAP } from '../lib/mock/skrimAlgorithm';
+import { assembleFeed, getDefaultMood, MOODS, MOCK_USERS, VELOCITY_MAP, generateSinglePost, calculateSkrimScore, getVibeTemperature } from '../lib/mock/skrimAlgorithm';
 import { SparkRow } from '../components/SparkRow';
 import { SparkViewer } from '../components/SparkViewer';
 import { SparkCreator } from '../components/SparkCreator';
@@ -1857,6 +1857,7 @@ export default function PulseScreen() {
   const touchStartY = useRef(0);
   const touchMoveY = useRef(0);
   const pageRef = useRef(0);
+  const pendingNewPulsesRef = useRef<any[]>([]);
 
   // Get viewed sparks
   const [viewedSparks, setViewedSparks] = useState<Set<string>>(() => {
@@ -2072,10 +2073,34 @@ export default function PulseScreen() {
         const inc = Math.floor(Math.random() * vm * 8);
         return inc > 0 ? { ...post, likes: post.likes + inc } : post;
       }));
+
+      // Generate a new simulated live pulse and add it to pendingNewPulsesRef
+      try {
+        const randIdx = 1000 + Math.floor(Math.random() * 9000);
+        const post = generateSinglePost(selectedMood, randIdx, false);
+        const score = calculateSkrimScore(post, selectedMood, []);
+        const completePost = {
+          ...post,
+          id: `simulated_live_${Date.now()}_${randIdx}`,
+          skrimScore: score,
+          temperature: getVibeTemperature(score),
+          isSaved: false,
+          isLiked: false,
+          time: 'Just now',
+          likes: Math.floor(Math.random() * 50) + 10,
+          comments: Math.floor(Math.random() * 10) + 2,
+          shares: Math.floor(Math.random() * 5),
+          reactions: {},
+        };
+        pendingNewPulsesRef.current = [completePost, ...pendingNewPulsesRef.current];
+      } catch (e) {
+        console.error('Error generating simulated live pulse', e);
+      }
+
       setNewPostsCount(c => c + 1);
     }, 25000);
     return () => clearInterval(t);
-  }, []);
+  }, [selectedMood]);
 
   const doRefreshFetch = () => {
     const fresh = assembleFeed(selectedMood, 0, 10, [], activeTab);
@@ -2090,7 +2115,16 @@ export default function PulseScreen() {
     try {
       reposts = JSON.parse(localStorage.getItem('skrimchat_reposts') || '[]');
     } catch (e) {}
-    setPosts([...reposts, ...fresh.map(p => ({
+
+    // Filter out posts from muted or blocked users
+    const muted = getMutedUsers();
+    const blocked = getBlockedUsers();
+    const filterPost = (p: any) => {
+      const handle = (p.handle || p.user?.username || p.userName || '').replace('@', '');
+      return !muted.includes(handle) && !blocked.includes(handle);
+    };
+
+    const freshSynced = fresh.map(p => ({
       ...p,
       isSaved: saved.includes(p.id),
       isLiked: liked.includes(p.id),
@@ -2099,7 +2133,15 @@ export default function PulseScreen() {
       shares: sc[p.id] ?? p.shares,
       reactions: reactionCounts[p.id] ?? p.reactions,
       myReactionId: myReactions[p.id] || null,
-    }))]);
+    })).filter(filterPost);
+
+    const filteredReposts = reposts.filter(filterPost);
+
+    // Grab any pending simulated live pulses and prepend them!
+    const pending = pendingNewPulsesRef.current;
+    pendingNewPulsesRef.current = []; // Clear them since we are displaying them now!
+
+    setPosts([...pending, ...filteredReposts, ...freshSynced]);
     setNewPostsCount(0);
   };
 
@@ -2113,7 +2155,7 @@ export default function PulseScreen() {
     }, 1200);
   };
 
-  // "X new posts" toast tap: must feel instant — scroll to top right away,
+  // "X new pulses" toast tap: must feel instant — scroll to top right away,
   // load fresh posts immediately (no artificial delay), no spinner overlay
   // blocking the scroll. Scroll is deferred with a double rAF so it runs
   // *after* React has committed the refreshed post list to the DOM —
@@ -2122,12 +2164,29 @@ export default function PulseScreen() {
   const handleNewPostsTap = () => {
     pageRef.current = 0;
     doRefreshFetch();
+
+    // Scroll to the top of the container immediately
+    if (containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      containerRef.current.scrollTop = 0;
+    }
+
+    // Secondary fallback to ensure it scrolls even with React state render delays
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        containerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
-        if (containerRef.current) containerRef.current.scrollTop = 0;
+        if (containerRef.current) {
+          containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+          containerRef.current.scrollTop = 0;
+        }
       });
     });
+
+    setTimeout(() => {
+      if (containerRef.current) {
+        containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        containerRef.current.scrollTop = 0;
+      }
+    }, 100);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -2279,7 +2338,7 @@ export default function PulseScreen() {
           >
             <div className="bg-[rgba(20,20,20,0.95)] backdrop-blur-md border border-[#B026FF] shadow-[0_0_15px_rgba(176,38,255,0.3)] px-5 py-2 rounded-full flex items-center gap-2">
               <Zap className="w-4 h-4 text-[#B026FF] fill-[#B026FF]" />
-              <span className="text-white text-sm font-bold">{newPostsCount} new post{newPostsCount > 1 ? 's' : ''}</span>
+              <span className="text-white text-sm font-bold">{newPostsCount} new pulse{newPostsCount > 1 ? 's' : ''}</span>
             </div>
           </motion.div>
         )}
