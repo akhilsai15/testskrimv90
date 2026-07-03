@@ -215,10 +215,10 @@ export function MusicPicker({ isOpen, onClose, onSelect, currentMusic, context =
                     const isPlaying = playingId === track.id;
                     const hasError = playError === track.id;
                     return (
-                      <button
+                      <div
                         key={track.id}
                         onClick={() => handleSelectLibrary(track)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${isSelected ? 'bg-[#B026FF]/15 border-[#B026FF]/50' : 'bg-white/3 border-white/5 hover:bg-white/8 hover:border-white/10'}`}
+                        className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-all text-left cursor-pointer ${isSelected ? 'bg-[#B026FF]/15 border-[#B026FF]/50' : 'bg-white/3 border-white/5 hover:bg-white/8 hover:border-white/10'}`}
                       >
                         <span className={`text-[11px] font-black w-5 text-center shrink-0 ${rank === 0 ? 'text-[#F59E0B]' : rank === 1 ? 'text-[#9CA3AF]' : rank === 2 ? 'text-[#CD7C3B]' : 'text-white/30'}`}>
                           {rank + 1}
@@ -236,7 +236,7 @@ export function MusicPicker({ isOpen, onClose, onSelect, currentMusic, context =
                           </p>
                         </div>
                         {isSelected && <Check className="w-4 h-4 text-[#B026FF] shrink-0" />}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -293,10 +293,10 @@ export function MusicPicker({ isOpen, onClose, onSelect, currentMusic, context =
                     const isPlaying = playingId === track.id;
                     const hasError = playError === track.id;
                     return (
-                      <button
+                      <div
                         key={track.id}
                         onClick={() => handleSelectLibrary(track)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${isSelected ? 'bg-[#B026FF]/15 border-[#B026FF]/50' : 'bg-white/3 border-white/5 hover:bg-white/8 hover:border-white/10'}`}
+                        className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-all text-left cursor-pointer ${isSelected ? 'bg-[#B026FF]/15 border-[#B026FF]/50' : 'bg-white/3 border-white/5 hover:bg-white/8 hover:border-white/10'}`}
                       >
                         <button
                           onClick={e => { e.stopPropagation(); togglePlay(track); }}
@@ -312,7 +312,7 @@ export function MusicPicker({ isOpen, onClose, onSelect, currentMusic, context =
                         </div>
                         <span className="text-[10px] text-white/30 border border-white/10 px-2 py-0.5 rounded-full shrink-0">{track.category}</span>
                         {isSelected && <Check className="w-4 h-4 text-[#B026FF] shrink-0" />}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
