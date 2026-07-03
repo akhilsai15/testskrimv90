@@ -423,7 +423,7 @@ export function VeilUnlockedInbox({ isDecoyMode }: VeilUnlockedInboxProps) {
         )}
       </div>
 
-      {(!isDecoyMode && conversations.length > 0) && (
+      {!isDecoyMode && (
         <button 
           onClick={() => setIsInviteSheetOpen(true)}
           className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-[#080810] border border-[rgba(255,255,255,0.1)] flex items-center justify-center text-white text-2xl hover:bg-[rgba(255,255,255,0.05)] active:scale-95 transition-all group z-30"
