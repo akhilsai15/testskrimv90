@@ -170,12 +170,16 @@ export function BadgeRow({
             )}
           </button>
 
-          <Tooltip
-            isOpen={activeTooltip === creatorBadge.id}
-            badge={creatorBadge}
-            onClose={() => setActiveTooltip(null)}
-            score={stats.pulseScore}
-          />
+          <AnimatePresence>
+            {activeTooltip === creatorBadge.id && (
+              <Tooltip
+                isOpen={true}
+                badge={creatorBadge}
+                onClose={() => setActiveTooltip(null)}
+                score={stats.pulseScore}
+              />
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -200,11 +204,15 @@ export function BadgeRow({
                   <div className="absolute inset-0 -z-10 rounded-full animate-pulse bg-gradient-to-r from-red-500 via-yellow-500 to-purple-500 opacity-20 blur-sm" />
                 )}
               </button>
-              <Tooltip
-                isOpen={activeTooltip === badge.id}
-                badge={badge}
-                onClose={() => setActiveTooltip(null)}
-              />
+              <AnimatePresence>
+                {activeTooltip === badge.id && (
+                  <Tooltip
+                    isOpen={true}
+                    badge={badge}
+                    onClose={() => setActiveTooltip(null)}
+                  />
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </div>
@@ -226,50 +234,74 @@ function Tooltip({
 }) {
   if (!isOpen) return null;
 
-  // Click outside listener would be good, but we can just use a full screen invisible backdrop
   return (
-    <div className="absolute z-[100] bottom-full left-1/2 -translate-x-1/2 mb-2 w-64">
-      <div
-        className="fixed inset-0 z-[-1]"
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 pointer-events-auto">
+      {/* Dark blur backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs"
         onClick={(e) => {
           e.stopPropagation();
           onClose();
         }}
       />
+      {/* Explanation Bubble Popover */}
       <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 10, scale: 0.9 }}
-        className="bg-skrim-surface border border-white/20 p-4 rounded-xl shadow-2xl backdrop-blur-xl relative"
+        initial={{ opacity: 0, scale: 0.9, y: 15 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 15 }}
+        transition={{ type: "spring", duration: 0.35, bounce: 0.15 }}
+        className="relative z-10 w-full max-w-[290px] bg-[#0c0c16]/95 border border-white/15 p-5 rounded-2xl shadow-[0_10px_35px_rgba(0,0,0,0.8)] backdrop-blur-xl"
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-2 top-2 p-1 text-gray-500 hover:text-white"
+          className="absolute right-3 top-3 p-1.5 text-gray-500 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-full cursor-pointer"
         >
           <XIcon />
         </button>
-        <h4
-          className="text-sm font-black flex items-center gap-2 mb-2"
-          style={{ color: badge.color }}
-        >
-          {badge.icon} {badge.name}
-        </h4>
-        <div className="w-full h-[1px] bg-white/10 mb-2" />
-        <p className="text-xs text-gray-300 leading-relaxed mb-3">
+
+        <div className="flex flex-col items-center text-center mt-2 mb-4">
+          <div 
+            className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-3 border-2 shadow-lg"
+            style={{ 
+              borderColor: badge.color, 
+              backgroundColor: badge.bgRgba,
+              boxShadow: `0 0 15px ${badge.bgRgba}`
+            }}
+          >
+            {badge.icon}
+          </div>
+          <h4
+            className="text-base font-black tracking-widest uppercase"
+            style={{ color: badge.color }}
+          >
+            {badge.name}
+          </h4>
+          <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider mt-1">
+            {badge.category} Badge
+          </span>
+        </div>
+        
+        <div className="w-full h-[1px] bg-white/10 mb-4" />
+        
+        <p className="text-xs text-gray-300 leading-relaxed mb-4 text-center px-1 font-sans">
           {badge.desc}
         </p>
 
         {badge.category === "creator" &&
           score !== undefined &&
           badge.nextLvlDesc && (
-            <div className="pt-2 border-t border-white/10 space-y-2 mt-2">
-              <p className="text-[10px] text-gray-400 font-medium">
-                Your score:{" "}
-                <span className="text-yellow-400 font-bold">
+            <div className="pt-3 border-t border-white/10 space-y-2.5">
+              <p className="text-[10px] text-gray-400 font-medium flex justify-between">
+                <span>Your score:</span>{" "}
+                <span className="text-yellow-400 font-bold font-mono">
                   {score.toLocaleString()} ⚡
                 </span>
               </p>
-              <p className="text-[10px] text-gray-400 font-medium">
+              <p className="text-[10px] text-gray-400 font-medium text-center">
                 {badge.nextLvlDesc}
               </p>
 
@@ -281,21 +313,21 @@ function Tooltip({
                   const need = target - score;
                   const pct = Math.min((score / target) * 100, 100);
                   return (
-                    <div className="space-y-1 mt-1">
-                      <p className="text-[10px] text-gray-400">
-                        Need:{" "}
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] text-gray-400 flex justify-between">
+                        <span>Need:</span>{" "}
                         <span className="text-white font-bold">
                           {need > 0 ? need.toLocaleString() : 0} more points
                         </span>
                       </p>
                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-yellow-400"
+                          className="h-full bg-yellow-400 rounded-full"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
                       <p className="text-[8px] text-right font-mono text-gray-500">
-                        {score.toLocaleString()}/{target.toLocaleString()}
+                        {score.toLocaleString()} / {target.toLocaleString()}
                       </p>
                     </div>
                   );
@@ -304,9 +336,14 @@ function Tooltip({
               })()}
             </div>
           )}
+
+        <button
+          onClick={onClose}
+          className="w-full mt-4 py-2.5 bg-white/5 hover:bg-white/10 active:scale-[0.98] border border-white/10 hover:border-white/20 rounded-xl text-xs font-bold text-white transition-all cursor-pointer text-center"
+        >
+          Got it
+        </button>
       </motion.div>
-      {/* Down arrow */}
-      <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-white/20" />
     </div>
   );
 }
