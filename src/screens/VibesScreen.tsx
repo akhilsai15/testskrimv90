@@ -141,6 +141,44 @@ function VibeCard({
   const [showComments, setShowComments] = useState(false);
   const lastTap = useRef(0);
 
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [showPlayOverlay, setShowPlayOverlay] = useState<'play' | 'pause' | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const tapTimeout = useRef<any>(null);
+  const overlayTimeout = useRef<any>(null);
+
+  // Sync play/pause with active state
+  useEffect(() => {
+    if (isActive) {
+      setIsPlaying(true);
+      if (videoRef.current) {
+        videoRef.current.play().catch(() => {});
+      }
+    } else {
+      setIsPlaying(false);
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+    }
+  }, [isActive]);
+
+  // Sync with local isPlaying state
+  useEffect(() => {
+    if (!videoRef.current) return;
+    if (isPlaying && isActive) {
+      videoRef.current.play().catch(() => {});
+    } else {
+      videoRef.current.pause();
+    }
+  }, [isPlaying, isActive]);
+
+  useEffect(() => {
+    return () => {
+      if (tapTimeout.current) clearTimeout(tapTimeout.current);
+      if (overlayTimeout.current) clearTimeout(overlayTimeout.current);
+    };
+  }, []);
+
   const dragY = useMotionValue(0);
   const imgScale = useTransform(dragY, [-200, 0, 200], [1.05, 1, 1.05]);
 
@@ -156,6 +194,10 @@ function VibeCard({
     const now = Date.now();
     if (now - lastTap.current < 300) {
       // double tap
+      if (tapTimeout.current) {
+        clearTimeout(tapTimeout.current);
+        tapTimeout.current = null;
+      }
       if (!liked) {
         setLiked(true);
         setPulses(p => {
@@ -173,6 +215,21 @@ function VibeCard({
         incrementStat('pulseScore', 3);
       }
       setBurst({ x: e.clientX, y: e.clientY });
+    } else {
+      // single tap (Play/Pause)
+      if (tapTimeout.current) clearTimeout(tapTimeout.current);
+      tapTimeout.current = setTimeout(() => {
+        setIsPlaying(prev => {
+          const next = !prev;
+          setShowPlayOverlay(next ? 'play' : 'pause');
+          if (overlayTimeout.current) clearTimeout(overlayTimeout.current);
+          overlayTimeout.current = setTimeout(() => {
+            setShowPlayOverlay(null);
+          }, 600);
+          return next;
+        });
+        tapTimeout.current = null;
+      }, 250);
     }
     lastTap.current = now;
   };
@@ -189,6 +246,7 @@ function VibeCard({
           existing mock thumbnail image (mock Vibes have no actual video file). */}
       {vibe.videoSrc ? (
         <motion.video
+          ref={videoRef}
           src={vibe.videoSrc}
           autoPlay={isActive}
           loop
@@ -217,6 +275,29 @@ function VibeCard({
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-black/30 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
 
+      {/* Play/Pause icon overlay */}
+      <AnimatePresence>
+        {showPlayOverlay && (
+          <motion.div
+            key={showPlayOverlay}
+            initial={{ scale: 0.3, opacity: 0 }}
+            animate={{ scale: [0.6, 1.2, 1], opacity: [0, 0.9, 0.9, 0] }}
+            exit={{ scale: 1.5, opacity: 0 }}
+            transition={{ duration: 0.6, times: [0, 0.2, 0.8, 1] }}
+            className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center z-30 pointer-events-none"
+          >
+            {showPlayOverlay === 'play' ? (
+              <Play className="w-8 h-8 text-white fill-white ml-0.5" />
+            ) : (
+              <div className="flex gap-1.5 justify-center items-center">
+                <div className="w-2 h-6 bg-white rounded-full" />
+                <div className="w-2 h-6 bg-white rounded-full" />
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Drag-to-swipe layer */}
       <motion.div
         className="absolute inset-0 z-10"
@@ -229,29 +310,12 @@ function VibeCard({
       />
 
       {/* ── Top bar ─────────────────────────────── */}
-      <div className="absolute top-2 left-0 right-0 z-20 pt-safe">
-        {/* Progress bars */}
-        <div className="pb-2">
-          <ProgressBars total={total} current={current} />
-        </div>
-
-        {/* Mute + More */}
-        <div className="flex justify-between items-center px-4 mt-1">
-          <motion.button
-            whileTap={{ scale: 0.8 }}
-            onClick={onToggleMute}
-            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur flex items-center justify-center border border-white/10"
-          >
-            {muted
-              ? <VolumeX className="w-4 h-4 text-white" />
-              : <Volume2 className="w-4 h-4 text-white" />
-            }
-          </motion.button>
-          <motion.button whileTap={{ scale: 0.8 }}
-            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur flex items-center justify-center border border-white/10">
-            <MoreHorizontal className="w-4 h-4 text-white" />
-          </motion.button>
-        </div>
+      <div className="absolute top-4 right-4 z-20 pt-safe">
+        <motion.button whileTap={{ scale: 0.8 }}
+          className="w-9 h-9 rounded-full bg-black/40 backdrop-blur flex items-center justify-center border border-white/10"
+        >
+          <MoreHorizontal className="w-4 h-4 text-white" />
+        </motion.button>
       </div>
 
       {/* ── Right action column ──────────────────── */}
@@ -320,6 +384,13 @@ function VibeCard({
             } catch (e) {}
             return next;
           })}
+        />
+
+        {/* Mute/Sound Toggle */}
+        <ActionBtn
+          icon={muted ? <VolumeX className="w-6 h-6 text-white" /> : <Volume2 className="w-6 h-6 text-white" />}
+          label={muted ? 'Mute' : 'Sound'}
+          onClick={onToggleMute}
         />
 
         {/* Rotating vinyl */}
