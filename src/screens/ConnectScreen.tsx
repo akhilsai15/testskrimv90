@@ -14,6 +14,7 @@ import { getBond, MOCK_BONDS } from '../lib/bondEngine';
 import { BondIcon } from '../components/BondIcon';
 import { GroupCreateFlow } from '../components/GroupCreateFlow';
 import { MOCK_CHATS } from '../lib/mock/mockChatDirectory';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 
 function SwipeableChatRow({ chat, onClick }: { chat: any, onClick: any, key?: React.Key }) {
@@ -242,6 +243,117 @@ export default function ConnectScreen() {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 2200);
   };
+
+  // STORY STATES & LOGIC
+  const currentUser = useCurrentUser();
+  const [userStory, setUserStory] = useState<{ emoji: string; text: string; caption: string } | null>(() => {
+    const stored = localStorage.getItem('skrimchat_user_story');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
+  const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
+  const [activeStoryViewer, setActiveStoryViewer] = useState<any | null>(null);
+  const [customVibe, setCustomVibe] = useState('');
+  const [customEmoji, setCustomEmoji] = useState('⚡');
+  const [customCaption, setCustomCaption] = useState('');
+
+  const PRESET_STORIES = [
+    { text: 'COOKING', emoji: '🍲', label: 'Cooking' },
+    { text: 'SELFIE', emoji: '🌸', label: 'Selfie' },
+    { text: 'CHAI TIME', emoji: '☕', label: 'Chai Time' },
+    { text: 'GYM SELFIE', emoji: '🏋️', label: 'Gym Selfie' },
+    { text: 'SAMOSAS', emoji: '🥟', label: 'Samosas' },
+    { text: 'IN LOBBY', emoji: '🎮', label: 'In Lobby' },
+    { text: 'REEL EDIT', emoji: '🎬', label: 'Reel Edit' },
+    { text: 'CRAMMING', emoji: '📚', label: 'Cramming' },
+  ];
+
+  const getCaptionForActivity = (activityText: string, name: string) => {
+    switch (activityText) {
+      case 'COOKING':
+        return `Cooking some secret recipe today! 🍲😋 Smells delicious!`;
+      case 'CRAMMING':
+        return `Studying for the exams... send coffee! 📚☕️💀`;
+      case 'CHAI TIME':
+        return `Quick cutting chai break with friends! ☕️⚡️`;
+      case 'GAZING':
+        return `Looking up at the beautiful starry sky tonight. 🌌✨`;
+      case 'GYM SELFIE':
+        return `Sweat is just fat crying! No excuses. 🏋️‍♂️💪`;
+      case 'GARAGE':
+        return `Working on restoring my classic bike engine! 🔧🛠️`;
+      case 'SAMOSAS':
+        return `Rainy evening calls for fresh, hot samosas! 🥟🌧️`;
+      case 'IN LOBBY':
+        return `Waiting in lobby. Hop on the squad, let's play! 🎮🔥`;
+      case 'SELFIE':
+        return `Golden hour hits just right! 🌸🤳✨`;
+      case 'REEL EDIT':
+        return `Editing a fresh transition video for my next reel! 🎬💃`;
+      default:
+        return `Just vibing and having a great day! ⚡️`;
+    }
+  };
+
+  const handleCreateStory = (emoji: string, text: string, caption: string) => {
+    const newStory = { emoji, text, caption };
+    setUserStory(newStory);
+    localStorage.setItem('skrimchat_user_story', JSON.stringify(newStory));
+    setShowCreateStoryModal(false);
+    showToast('⚡ Story created! Your friends can see your vibe now.');
+  };
+
+  const handleDeleteStory = () => {
+    setUserStory(null);
+    localStorage.removeItem('skrimchat_user_story');
+    setActiveStoryViewer(null);
+    showToast('🗑️ Story deleted.');
+  };
+
+  const sendStoryReply = (contactUsername: string, replyText: string) => {
+    if (!replyText.trim()) return;
+    const storedChatsStr = localStorage.getItem('skrimchat_custom_chats');
+    const customChats = storedChatsStr ? JSON.parse(storedChatsStr) : {};
+    const chatKey = contactUsername.replace('@', '');
+    const existingMessages = customChats[chatKey] || [];
+    const newMessage = {
+      id: `msg_${Date.now()}`,
+      sender: 'me',
+      text: `Replied to your story: "${replyText}"`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: 'text'
+    };
+    customChats[chatKey] = [...existingMessages, newMessage];
+    localStorage.setItem('skrimchat_custom_chats', JSON.stringify(customChats));
+    window.dispatchEvent(new Event('skrimchat_custom_chats_updated'));
+    showToast(`💬 Reply sent to @${chatKey}!`);
+    setActiveStoryViewer(null);
+  };
+
+  const sendStoryReaction = (contactUsername: string, emoji: string) => {
+    const storedChatsStr = localStorage.getItem('skrimchat_custom_chats');
+    const customChats = storedChatsStr ? JSON.parse(storedChatsStr) : {};
+    const chatKey = contactUsername.replace('@', '');
+    const existingMessages = customChats[chatKey] || [];
+    const newMessage = {
+      id: `msg_${Date.now()}`,
+      sender: 'me',
+      text: `Reacted to your story: ${emoji}`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: 'text'
+    };
+    customChats[chatKey] = [...existingMessages, newMessage];
+    localStorage.setItem('skrimchat_custom_chats', JSON.stringify(customChats));
+    window.dispatchEvent(new Event('skrimchat_custom_chats_updated'));
+    showToast(`Reacted with ${emoji} to @${chatKey}!`);
+    setActiveStoryViewer(null);
+  };
   const [customGroups, setCustomGroups] = useState<any[]>([]);
 
   useEffect(() => {
@@ -406,24 +518,58 @@ export default function ConnectScreen() {
                     <motion.div
                       whileHover={{ scale: 1.04, y: -2 }}
                       whileTap={{ scale: 0.96 }}
-                      className="relative w-[105px] h-[150px] rounded-2xl overflow-hidden shrink-0 cursor-pointer border border-white/5 bg-[#12121A] group/story snap-start"
+                      onClick={() => {
+                        if (userStory) {
+                          setActiveStoryViewer({
+                            id: 'me',
+                            name: currentUser?.displayName || 'You',
+                            username: currentUser?.username || 'you',
+                            avatar: currentUser?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=You",
+                            emoji: userStory.emoji,
+                            text: userStory.text,
+                            caption: userStory.caption || '',
+                            isMe: true
+                          });
+                        } else {
+                          setShowCreateStoryModal(true);
+                        }
+                      }}
+                      className={`relative w-[105px] h-[150px] rounded-2xl overflow-hidden shrink-0 cursor-pointer border ${userStory ? 'border-[#B026FF]/40 bg-[#161224] shadow-[0_4px_15px_rgba(176,38,255,0.15)]' : 'border-white/5 bg-[#12121A]'} group/story snap-start`}
                     >
                       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black/95 z-10" />
                       <img 
-                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=You" 
-                        className="absolute inset-0 w-full h-full object-cover opacity-25 group-hover/story:opacity-40 transition-opacity" 
+                        src={currentUser?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=You"} 
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity ${userStory ? 'opacity-40 group-hover/story:opacity-60' : 'opacity-25 group-hover/story:opacity-40'}`} 
                         alt="Your avatar"
                       />
                       
-                      {/* Top plus badge with pink glow */}
+                      {/* Top pulsing ring or plus badge */}
                       <div className="absolute top-3 left-3 z-20">
-                        <div className="w-9 h-9 rounded-full border-2 border-[#B026FF] flex items-center justify-center bg-[#B026FF]/20 relative shadow-[0_0_12px_rgba(176,38,255,0.4)]">
-                          <span className="text-white text-md font-black leading-none">+</span>
-                        </div>
+                        {userStory ? (
+                          <div className="relative w-9 h-9">
+                            <div className="absolute inset-[-2px] rounded-full border-2 border-[#B026FF]/80 shadow-[0_0_8px_rgba(176,38,255,0.5)] animate-pulse" style={{ animationDuration: '2.5s' }} />
+                            <img src={currentUser?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=You"} className="w-full h-full rounded-full border border-black/50 object-cover relative z-10 bg-zinc-800" alt="You" />
+                          </div>
+                        ) : (
+                          <div className="w-9 h-9 rounded-full border-2 border-[#B026FF] flex items-center justify-center bg-[#B026FF]/20 relative shadow-[0_0_12px_rgba(176,38,255,0.4)]">
+                            <span className="text-white text-md font-black leading-none">+</span>
+                          </div>
+                        )}
                       </div>
 
+                      {/* Top right story emoji badge */}
+                      {userStory && (
+                        <div className="absolute top-3 right-3 z-20">
+                          <div className="w-6 h-6 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-xs shadow-md">
+                            {userStory.emoji}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-col gap-0.5">
-                        <span className="text-[9px] text-[#B026FF] font-black tracking-wider uppercase font-mono block">CREATE</span>
+                        <span className={`text-[9px] font-black tracking-wider uppercase font-mono block ${userStory ? 'text-[#D869FF]' : 'text-[#B026FF]'}`}>
+                          {userStory ? userStory.text : 'CREATE'}
+                        </span>
                         <span className="text-[11px] text-white/90 font-extrabold drop-shadow truncate">Your Story</span>
                       </div>
                     </motion.div>
@@ -436,7 +582,19 @@ export default function ConnectScreen() {
                           key={contact.id} 
                           whileHover={{ scale: 1.04, y: -2 }}
                           whileTap={{ scale: 0.96 }}
-                          onClick={() => navigate(`/chat/${contact.id}`)}
+                          onClick={() => {
+                            const caption = getCaptionForActivity(activity.text, contact.name);
+                            setActiveStoryViewer({
+                              id: contact.id,
+                              name: contact.name,
+                              username: contact.username,
+                              avatar: contact.avatar,
+                              emoji: activity.emoji,
+                              text: activity.text,
+                              caption: caption,
+                              isMe: false
+                            });
+                          }}
                           className="relative w-[105px] h-[150px] rounded-2xl overflow-hidden shrink-0 cursor-pointer border border-white/10 bg-[#161622] shadow-[0_8px_24px_rgba(0,0,0,0.4)] group/story snap-start transition-all"
                         >
                           {/* Card background glowing gradient or blurred wallpaper */}
@@ -673,6 +831,280 @@ export default function ConnectScreen() {
         )}
       </AnimatePresence>
 
+      {/* Create Story Modal */}
+      <AnimatePresence>
+        {showCreateStoryModal && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-[#161622] border border-white/10 rounded-3xl overflow-hidden p-6 shadow-2xl"
+            >
+              {/* Top header */}
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-black text-white bg-gradient-to-r from-[#B026FF] to-[#00F0FF] bg-clip-text text-transparent">Share Your Vibe</h3>
+                <button
+                  onClick={() => setShowCreateStoryModal(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors text-white/70 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-xs text-white/40 mb-4 font-bold tracking-wider uppercase font-mono">PRESET VIBES</p>
+              
+              {/* Preset Stories Grid */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {PRESET_STORIES.map((preset) => (
+                  <button
+                    key={preset.text}
+                    onClick={() => {
+                      handleCreateStory(preset.emoji, preset.text, getCaptionForActivity(preset.text, currentUser?.displayName || 'You'));
+                    }}
+                    className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-[#B026FF]/40 text-left transition-all group"
+                  >
+                    <span className="text-2xl group-hover:scale-125 transition-transform duration-300">{preset.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-extrabold text-[11px] font-mono tracking-wider">{preset.text}</div>
+                      <div className="text-white/40 text-[11px] truncate">{preset.label}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="border-t border-white/5 my-6 pt-5">
+                <p className="text-xs text-white/40 mb-4 font-bold tracking-wider uppercase font-mono">CUSTOM VIBE</p>
+                
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!customVibe.trim()) return;
+                    handleCreateStory(customEmoji, customVibe.toUpperCase().trim(), customCaption.trim());
+                    setCustomVibe('');
+                    setCustomCaption('');
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="flex gap-2">
+                    {/* Emoji selector */}
+                    <div className="flex flex-col gap-1.5 shrink-0">
+                      <label className="text-[10px] text-white/40 font-bold font-mono tracking-wider">EMOJI</label>
+                      <select
+                        value={customEmoji}
+                        onChange={(e) => setCustomEmoji(e.target.value)}
+                        className="bg-white/5 border border-white/10 text-xl p-2.5 rounded-xl outline-none text-white focus:border-[#B026FF] cursor-pointer"
+                      >
+                        {['⚡', '🔥', '🍲', '🤳', '🏋️', '☕', '🥟', '🎮', '🎬', '📚', '🎧', '✈️', '🎨', '🍿', '💡', '💭', '😴'].map(emo => (
+                          <option key={emo} value={emo} className="bg-[#161622] text-white text-base">{emo}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Vibe input */}
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <label className="text-[10px] text-white/40 font-bold font-mono tracking-wider">VIBE TEXT</label>
+                      <input
+                        type="text"
+                        maxLength={15}
+                        required
+                        placeholder="E.g. SLEEPY, CODING..."
+                        value={customVibe}
+                        onChange={(e) => setCustomVibe(e.target.value)}
+                        className="bg-white/5 border border-white/10 p-2.5 rounded-xl outline-none text-white text-sm focus:border-[#B026FF] uppercase font-mono placeholder:lowercase"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] text-white/40 font-bold font-mono tracking-wider">STORY CAPTION (OPTIONAL)</label>
+                    <input
+                      type="text"
+                      maxLength={80}
+                      placeholder="What's happening? (max 80 chars)"
+                      value={customCaption}
+                      onChange={(e) => setCustomCaption(e.target.value)}
+                      className="bg-white/5 border border-white/10 p-2.5 rounded-xl outline-none text-white text-sm focus:border-[#B026FF]"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={!customVibe.trim()}
+                    className="w-full bg-gradient-to-r from-[#B026FF] to-[#D869FF] text-white font-extrabold text-sm py-3 rounded-xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    Share Custom Story
+                  </button>
+                </form>
+              </div>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Story Viewer Modal */}
+      <AnimatePresence>
+        {activeStoryViewer && (
+          <StoryViewerOverlay
+            story={activeStoryViewer}
+            onClose={() => setActiveStoryViewer(null)}
+            onDelete={handleDeleteStory}
+            onReply={sendStoryReply}
+            onReact={sendStoryReaction}
+          />
+        )}
+      </AnimatePresence>
+
+    </div>
+  );
+}
+
+interface StoryViewerOverlayProps {
+  story: any;
+  onClose: () => void;
+  onDelete: () => void;
+  onReply: (username: string, text: string) => void;
+  onReact: (username: string, emoji: string) => void;
+}
+
+function StoryViewerOverlay({ story, onClose, onDelete, onReply, onReact }: StoryViewerOverlayProps) {
+  const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [replyText, setReplyText] = useState('');
+
+  useEffect(() => {
+    if (isPaused) return;
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          onClose();
+          return 100;
+        }
+        return prev + 1;
+      });
+    }, 50); // 100 * 50ms = 5000ms (5 seconds)
+
+    return () => clearInterval(interval);
+  }, [isPaused, onClose]);
+
+  return (
+    <div 
+      className="fixed inset-0 z-[10000] bg-black flex flex-col justify-between p-4"
+      onMouseDown={() => setIsPaused(true)}
+      onMouseUp={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
+    >
+      {/* Top Bar: Progress & User Info */}
+      <div className="w-full space-y-3 z-10 relative">
+        {/* Progress bar container */}
+        <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-gradient-to-r from-[#B026FF] to-[#00F0FF] transition-all duration-75"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={story.avatar} className="w-10 h-10 rounded-full object-cover border border-white/20" alt={story.name} />
+            <div>
+              <div className="text-white font-extrabold text-sm">{story.name}</div>
+              <div className="text-white/50 text-[11px] font-mono">@{story.username}</div>
+            </div>
+          </div>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/80 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 select-none">
+        {/* Huge glowing pulsing emoji */}
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="text-8xl mb-6 filter drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]"
+        >
+          {story.emoji}
+        </motion.div>
+
+        {/* Bold uppercase activity text */}
+        <span className="text-sm font-black text-[#B026FF] font-mono tracking-widest uppercase mb-2 block bg-[#B026FF]/10 px-4 py-1 rounded-full border border-[#B026FF]/20">
+          {story.text}
+        </span>
+
+        {/* Story caption */}
+        {story.caption && (
+          <p className="text-white/90 text-lg font-bold leading-relaxed max-w-xs drop-shadow px-2">
+            {story.caption}
+          </p>
+        )}
+      </div>
+
+      {/* Footer controls */}
+      <div className="w-full space-y-4 z-10 relative mb-4">
+        {story.isMe ? (
+          <div className="flex justify-center">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 px-6 py-2.5 rounded-full font-bold text-xs transition-all uppercase tracking-wider"
+            >
+              Delete My Story
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Quick reaction emojis */}
+            <div className="flex justify-center gap-4">
+              {['❤️', '🔥', '😂', '😮', '👏'].map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReact(story.username, emoji);
+                  }}
+                  className="text-2xl hover:scale-125 active:scale-95 transition-transform bg-white/5 hover:bg-white/10 p-2.5 rounded-full"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+
+            {/* Direct message text box */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                onReply(story.username, replyText);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex gap-2 items-center bg-white/10 rounded-full px-4 py-2 border border-white/10"
+            >
+              <input
+                type="text"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder={`Send reply to @${story.username}...`}
+                className="bg-transparent flex-1 outline-none text-white text-sm placeholder-white/40"
+              />
+              <button
+                type="submit"
+                disabled={!replyText.trim()}
+                className="text-[#00F0FF] font-bold text-sm disabled:opacity-40"
+              >
+                Send
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
