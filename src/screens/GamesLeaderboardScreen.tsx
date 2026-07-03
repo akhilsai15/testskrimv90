@@ -8,12 +8,24 @@ import { motion, AnimatePresence } from 'motion/react';
 
 const GAMES_INFO: Record<string, { title: string, icon: string }> = {
     "overall": { title: "Overall", icon: "🏆" },
-    "snake": { title: "Snake", icon: "🐍" },
-    "lagori": { title: "Lagori", icon: "🏏" },
-    "kancha": { title: "Kancha", icon: "🧿" },
+    "gilli": { title: "Gilli Danda", icon: "🏏" },
+    "lagori": { title: "Lagori", icon: "🥏" },
+    "kancha": { title: "Kancha Strike", icon: "🔵" },
     "kabaddi": { title: "Kabaddi", icon: "🤼" },
-    "quiz": { title: "Quiz Battle", icon: "🎯" },
-    "emoji": { title: "Emoji Guess", icon: "🎬" }
+    "snake": { title: "Snake", icon: "🐍" },
+    "tictactoe": { title: "Tic Tac Toe", icon: "⭕" },
+    "ludo": { title: "Ludo", icon: "🎲" },
+    "snakesladders": { title: "Snakes & Ladders", icon: "🪜" },
+    "truthdare": { title: "Truth or Dare", icon: "🔥" },
+    "quiz": { title: "Quiz Battle", icon: "🧠" },
+    "emoji": { title: "Emoji Guess", icon: "😂" },
+    "chess": { title: "Chess", icon: "♟️" },
+    "mafia": { title: "Mafia", icon: "🕵️" },
+    "wordchain": { title: "Word Chain", icon: "🔤" },
+    "bluffquiz": { title: "Bluff Quiz", icon: "🃏" },
+    "uno": { title: "UNO", icon: "🎴" },
+    "bubbleshooter": { title: "Bubble Shooter", icon: "🫧" },
+    "bounceball": { title: "Bounce Ball", icon: "⚽" }
 };
 
 type TimeFilter = 'today' | 'week' | 'all';

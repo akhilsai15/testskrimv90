@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Share2, Users, Plus, X, RotateCcw, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Share2, Users, Plus, X, RotateCcw, AlertTriangle, ShieldCheck, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { TRUTH_DARE_PACKS, ContentPack } from '../constants/truthOrDarePacks';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
 
 type GameState = 'SETUP' | 'WHEEL' | 'CHOICE' | 'CARD';
 type CardType = 'TRUTH' | 'DARE';
@@ -27,6 +29,11 @@ const COLORS = [
 
 export default function TruthOrDareScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
+  const [score, setScore] = useState(0);
+  const [bestScore, setBestScore] = useState(() => {
+    return parseInt(localStorage.getItem('truthdare_best') || '0', 10);
+  });
 
   const [gameState, setGameState] = useState<GameState>('SETUP');
   
@@ -173,6 +180,16 @@ export default function TruthOrDareScreen() {
 
   const nextTurn = () => {
     setIsFlipped(false);
+    setScore(s => s + 1);
+    const newScore = score + 1;
+    saveGameScore('truthdare', newScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+    
+    const savedBest = parseInt(localStorage.getItem('truthdare_best') || '0', 10);
+    if (newScore > savedBest) {
+      localStorage.setItem('truthdare_best', newScore.toString());
+      setBestScore(newScore);
+    }
+
     setTimeout(() => {
       setGameState('WHEEL');
       setSelectedPlayer(null);
@@ -318,6 +335,12 @@ export default function TruthOrDareScreen() {
                 </div>
               )}
             </div>
+
+            {bestScore > 0 && (
+              <div className="flex items-center justify-center gap-1.5 text-amber-400 text-xs font-bold bg-white/5 border border-white/10 rounded-xl py-2 px-3 mb-6">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" /> PARTY BEST: {bestScore} prompts completed
+              </div>
+            )}
 
             <h2 className="text-xl font-bold mb-4 text-white/90">Select Content Pack</h2>
             <div className="grid grid-cols-2 gap-3 mb-8">

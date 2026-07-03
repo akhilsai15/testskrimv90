@@ -4,6 +4,8 @@ import { ChevronLeft, Share2, Trophy, Play, Users, User, Zap, Sparkles, AlertCir
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { QUIZ_CATEGORIES, QuizCategory, QuizQuestion } from '../constants/quizQuestions';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
 
 type GameMode = 'SOLO' | 'PVP';
 type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
@@ -11,6 +13,10 @@ type GameState = 'MENU' | 'PLAYING' | 'GAMEOVER';
 
 export default function QuizBattleScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
+  const [bestScore, setBestScore] = useState(() => {
+    return parseInt(localStorage.getItem('quiz_best') || '0', 10);
+  });
   
   const [gameState, setGameState] = useState<GameState>('MENU');
   
@@ -141,6 +147,13 @@ export default function QuizBattleScreen() {
         origin: { y: 0.6 },
         colors: ['#4ade80', '#facc15', '#60a5fa']
       });
+      
+      saveGameScore('quiz', scores.p1, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      const savedBest = parseInt(localStorage.getItem('quiz_best') || '0', 10);
+      if (scores.p1 > savedBest) {
+        localStorage.setItem('quiz_best', scores.p1.toString());
+        setBestScore(scores.p1);
+      }
     }
   };
 
@@ -173,6 +186,16 @@ export default function QuizBattleScreen() {
         {gameState === 'MENU' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col px-4 pb-10 mt-4">
             
+            {bestScore > 0 && (
+              <div className="mb-6 flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl p-4">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-amber-400 fill-amber-400/20" />
+                  <span className="font-black text-sm text-amber-400 uppercase tracking-wider">Personal Best</span>
+                </div>
+                <span className="font-mono font-black text-lg text-white">{bestScore} pts</span>
+              </div>
+            )}
+
             {/* Mode Select */}
             <h3 className="font-bold text-white/50 text-sm uppercase tracking-wider mb-3">Game Mode</h3>
             <div className="flex gap-3 mb-8">

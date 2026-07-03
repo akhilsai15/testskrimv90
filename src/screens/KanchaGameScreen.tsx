@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Share2, Play, Info, RefreshCw, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
 
 const COURT_W = 400;
 const COURT_H = 600;
@@ -158,6 +160,10 @@ function checkObstacleCollision(m: Marble, obs: Obstacle) {
 
 export default function KanchaGameScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
+  const [bestScore, setBestScore] = useState(() => {
+    return parseInt(localStorage.getItem('kancha_best') || '0', 10);
+  });
 
   const [appPhase, setAppPhase] = useState<AppPhase>('MENU');
   const [level, setLevel] = useState(1);
@@ -480,8 +486,21 @@ export default function KanchaGameScreen() {
          let maxLvl = parseInt(localStorage.getItem('kancha_max_level') || '1');
          maxLvl = Math.max(maxLvl, level + 1);
          localStorage.setItem('kancha_max_level', maxLvl.toString());
+
+         saveGameScore('kancha', s.score, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+         const savedBest = parseInt(localStorage.getItem('kancha_best') || '0', 10);
+         if (s.score > savedBest) {
+            localStorage.setItem('kancha_best', s.score.toString());
+            setBestScore(s.score);
+         }
       } else if (s.shotsLeft <= 0) {
          setAppPhase('GAMEOVER');
+         saveGameScore('kancha', s.score, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+         const savedBest = parseInt(localStorage.getItem('kancha_best') || '0', 10);
+         if (s.score > savedBest) {
+            localStorage.setItem('kancha_best', s.score.toString());
+            setBestScore(s.score);
+         }
       }
     }
 
@@ -795,7 +814,13 @@ export default function KanchaGameScreen() {
                </div>
             </div>
             
-            <h1 className="text-4xl font-black mb-8 tracking-tight text-white/90">Aim & Shoot!</h1>
+            <h1 className="text-4xl font-black mb-4 tracking-tight text-white/90">Aim & Shoot!</h1>
+
+            {bestScore > 0 && (
+              <div className="flex items-center justify-center gap-1.5 text-amber-400 text-xs font-bold bg-white/5 border border-white/10 rounded-2xl py-2 px-3 mb-6">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" /> PERSONAL BEST: {bestScore} pts
+              </div>
+            )}
 
             <button 
               onClick={startGame}

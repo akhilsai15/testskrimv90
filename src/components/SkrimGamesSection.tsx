@@ -35,24 +35,24 @@ const CATEGORIES = [
 ];
 
 const GAMES = [
-  { id: "gilli",         title: "Gilli Danda",     category: "indian",   rating: "4.8", players: "12K",  score: "840",     hot: true  },
-  { id: "lagori",        title: "Lagori",           category: "indian",   rating: "4.6", players: "8.2K", score: "120",     new: true  },
-  { id: "kancha",        title: "Kancha Strike",    category: "indian",   rating: "4.9", players: "24K",  score: "2400",    new: true  },
-  { id: "kabaddi",       title: "Kabaddi",          category: "indian",   rating: "4.8", players: "32K",  score: "150",     hot: true  },
-  { id: "snake",         title: "Snake",            category: "classic",  rating: "4.9", players: "120K", score: "2450",    hot: true  },
-  { id: "tictactoe",     title: "Tic Tac Toe",      category: "classic",  rating: "4.5", players: "54K",  score: "89"                  },
-  { id: "ludo",          title: "Ludo",             category: "classic",  rating: "4.9", players: "800K", score: "Turn: 3", hot: true  },
-  { id: "snakesladders", title: "Snakes & Ladders", category: "classic",  rating: "4.6", players: "40K",  score: "0"                   },
-  { id: "truthdare",     title: "Truth or Dare",    category: "social",   rating: "4.8", players: "300K", score: "0",       hot: true  },
-  { id: "quiz",          title: "Quiz Battle",      category: "social",   rating: "4.9", players: "150K", score: "Q: 7/10"             },
-  { id: "emoji",         title: "Emoji Guess",      category: "social",   rating: "4.7", players: "90K",  score: "18",      new: true  },
-  { id: "chess",         title: "Chess",            category: "classic",  rating: "4.9", players: "500K", score: "0",       hot: true  },
-  { id: "mafia",         title: "Mafia",            category: "social",   rating: "4.8", players: "200K", score: "0",       new: true  },
-  { id: "wordchain",     title: "Word Chain",       category: "social",   rating: "4.6", players: "80K",  score: "0",       new: true  },
-  { id: "bluffquiz",     title: "Bluff Quiz",       category: "social",   rating: "4.7", players: "120K", score: "0",       new: true  },
-  { id: "uno",           title: "UNO",              category: "classic",  rating: "4.9", players: "1M",   score: "0",       hot: true  },
-  { id: "bubbleshooter", title: "Bubble Shooter",   category: "classic",  rating: "4.8", players: "350K", score: "0",       hot: true  },
-  { id: "bounceball",    title: "Bounce Ball",      category: "classic",  rating: "4.7", players: "180K", score: "0",       new: true  },
+  { id: "gilli",         title: "Gilli Danda",     category: "indian",   rating: "4.8", mode: "Solo Run",  score: "840",     hot: true  },
+  { id: "lagori",        title: "Lagori",           category: "indian",   rating: "4.6", mode: "vs Bots", score: "120",     new: true  },
+  { id: "kancha",        title: "Kancha Strike",    category: "indian",   rating: "4.9", mode: "Solo Run",  score: "2400",    new: true  },
+  { id: "kabaddi",       title: "Kabaddi",          category: "indian",   rating: "4.8", mode: "vs Bots / Pass & Play",  score: "150",     hot: true  },
+  { id: "snake",         title: "Snake",            category: "classic",  rating: "4.9", mode: "Solo Run", score: "2450",    hot: true  },
+  { id: "tictactoe",     title: "Tic Tac Toe",      category: "classic",  rating: "4.5", mode: "vs Bots / Pass & Play",  score: "89"                  },
+  { id: "ludo",          title: "Ludo",             category: "classic",  rating: "4.9", mode: "vs Bots / Pass & Play", score: "Turn: 3", hot: true  },
+  { id: "snakesladders", title: "Snakes & Ladders", category: "classic",  rating: "4.6", mode: "vs Bots / Pass & Play", score: "0"                   },
+  { id: "truthdare",     title: "Truth or Dare",    category: "social",   rating: "4.8", mode: "Pass & Play (Group)", score: "0",       hot: true  },
+  { id: "quiz",          title: "Quiz Battle",      category: "social",   rating: "4.9", mode: "Solo / Pass & Play", score: "Q: 7/10"             },
+  { id: "emoji",         title: "Emoji Guess",      category: "social",   rating: "4.7", mode: "Solo Run",  score: "18",      new: true  },
+  { id: "chess",         title: "Chess",            category: "classic",  rating: "4.9", mode: "vs Bots / Pass & Play", score: "0",       hot: true  },
+  { id: "mafia",         title: "Mafia",            category: "social",   rating: "4.8", mode: "Pass & Play (Group)", score: "0",       new: true  },
+  { id: "wordchain",     title: "Word Chain",       category: "social",   rating: "4.6", mode: "vs Bots / Pass & Play", score: "0",       new: true  },
+  { id: "bluffquiz",     title: "Bluff Quiz",       category: "social",   rating: "4.7", mode: "vs Bots / Pass & Play", score: "0",       new: true  },
+  { id: "uno",           title: "UNO",              category: "classic",  rating: "4.9", mode: "vs Bots / Pass & Play", score: "0",       hot: true  },
+  { id: "bubbleshooter", title: "Bubble Shooter",   category: "classic",  rating: "4.8", mode: "Solo Run", score: "0",       hot: true  },
+  { id: "bounceball",    title: "Bounce Ball",      category: "classic",  rating: "4.7", mode: "Solo Run", score: "0",       new: true  },
 ];
 
 const RECENT_GAMES = [
@@ -262,12 +262,12 @@ export function SkrimGamesSection() {
 
                 <div className="p-3.5 flex-1 flex flex-col">
                   <h3 className="text-white font-bold text-sm tracking-tight mb-1.5">{game.title}</h3>
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <span className="flex items-center gap-0.5 text-white/70 text-xs font-medium">
-                      <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" /> {game.rating}
-                    </span>
-                    <span className="flex items-center gap-1 text-white/70 text-xs font-medium">
-                      <Users className="w-3 h-3" /> {game.players}
+                  <div className="flex flex-col gap-1 mb-3">
+                    <div className="flex items-center gap-1 text-white/70 text-xs font-medium">
+                      <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" /> {game.rating}
+                    </div>
+                    <span className="text-[10px] font-extrabold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded-md w-fit">
+                      {game.mode}
                     </span>
                   </div>
                   

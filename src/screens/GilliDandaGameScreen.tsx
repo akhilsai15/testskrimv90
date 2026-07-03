@@ -4,6 +4,8 @@ import { Play, Trophy, RefreshCw, X, Wind, Zap, Target, Flame, Star, ChevronRigh
 import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { addCoins } from '../lib/coinsWallet';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
 
 const CANVAS_W = 400;
 const CANVAS_H = 600;
@@ -71,6 +73,11 @@ export default function GilliDandaGameScreen() {
   const rafId = useRef<number>(0);
   const lastTime = useRef<number>(0);
   const timerRef = useRef<number | null>(null);
+
+  const currentUser = useCurrentUser();
+  const [bestScore, setBestScore] = useState(() => {
+    return parseInt(localStorage.getItem('gillidanda_best_score') || '0', 10);
+  });
 
   const [appPhase, setAppPhase] = useState<'MENU' | 'PLAYING' | 'GAMEOVER' | 'MODESELECTOR'>('MENU');
   const [gameMode, setGameMode] = useState<GameMode>('NORMAL');
@@ -189,6 +196,17 @@ export default function GilliDandaGameScreen() {
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [appPhase, gameMode]);
+
+  useEffect(() => {
+    if (appPhase === 'GAMEOVER') {
+      saveGameScore('gilli', totalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      const savedBestScore = parseInt(localStorage.getItem('gillidanda_best_score') || '0', 10);
+      if (totalScore > savedBestScore) {
+        localStorage.setItem('gillidanda_best_score', totalScore.toString());
+        setBestScore(totalScore);
+      }
+    }
+  }, [appPhase, totalScore, currentUser]);
 
   const throwParticles = (x: number, y: number, color: string, amount: number) => {
     const s = engineRef.current;
@@ -690,9 +708,16 @@ export default function GilliDandaGameScreen() {
                     GILLI DANDA
                   </h1>
                   <p className="text-amber-100/50 font-bold tracking-widest text-[10px] uppercase">India's Street Classic</p>
-                  <div className="mt-2 flex items-center justify-center gap-1">
-                    <Trophy className="w-4 h-4 text-amber-400"/>
-                    <span className="text-amber-400 font-black">{bestDistance}m Best</span>
+                  <div className="mt-2 flex flex-col items-center justify-center gap-1">
+                    <div className="flex items-center justify-center gap-1">
+                      <Trophy className="w-4 h-4 text-amber-400"/>
+                      <span className="text-amber-400 font-black">{bestDistance}m Best Hit</span>
+                    </div>
+                    {bestScore > 0 && (
+                      <div className="flex items-center justify-center gap-1 text-xs text-amber-200/60 font-bold mt-1">
+                        <Star className="w-3.5 h-3.5 text-amber-300 fill-amber-300" /> High Score: {bestScore} pts
+                      </div>
+                    )}
                   </div>
                 </div>
 

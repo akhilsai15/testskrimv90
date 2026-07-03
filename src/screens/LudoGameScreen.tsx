@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
 import { ChevronLeft, Share2, ZoomIn, RotateCcw, Users, Play, Bot, User, MessageSquare, Undo, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -116,6 +117,9 @@ const PaisleyBorder = () => (
 export default function LudoGameScreen() {
   const navigate = useNavigate();
   const user = useCurrentUser();
+  const [bestScore, setBestScore] = useState(() => {
+    return parseInt(localStorage.getItem('ludo_best') || '0', 10);
+  });
   
   const [gameState, setGameState] = useState<GameState>('MENU');
   const [players, setPlayers] = useState<Player[]>([]);
@@ -336,9 +340,22 @@ export default function LudoGameScreen() {
        
        const myFinished = tokensRef.current.filter(t => t.color === token.color && t.stepsTravelled === 56).length;
        if (myFinished === 4) {
-          setWinner(playersRef.current.find(p => p.color === token.color) || null);
+          const finalWinner = playersRef.current.find(p => p.color === token.color) || null;
+          setWinner(finalWinner);
           setGameState('ENDED');
           setIsMoving(false);
+
+          const redTokens = tokensRef.current.filter(t => t.color === 'RED');
+          const stepsScore = redTokens.reduce((sum, t) => sum + Math.max(0, t.stepsTravelled), 0);
+          const finalScore = (token.color === 'RED') ? 500 + stepsScore : stepsScore;
+
+          saveGameScore('ludo', finalScore, user?.name || user?.username || 'You', user?.avatar);
+
+          const savedBest = parseInt(localStorage.getItem('ludo_best') || '0', 10);
+          if (finalScore > savedBest) {
+            localStorage.setItem('ludo_best', finalScore.toString());
+            setBestScore(finalScore);
+          }
           return;
        }
     }
@@ -450,6 +467,12 @@ export default function LudoGameScreen() {
               >
                 NEW GAME
               </button>
+
+              {bestScore > 0 && (
+                <div className="flex items-center justify-center gap-1.5 text-[#8B4513] text-sm font-bold border-2 border-dashed border-[#8B4513] rounded-sm py-2 px-3 mt-4">
+                  <Star className="w-4 h-4 text-[#8B4513] fill-[#8B4513]" /> ROYAL BEST: {bestScore} pts
+                </div>
+              )}
 
               {localStorage.getItem('ludo_royal_state') && (
                 <button 

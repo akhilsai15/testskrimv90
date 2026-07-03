@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Share2, Home, RotateCcw, Users, Trophy, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
 
 const SNAKES = [
   { start: 16, end: 6 },
@@ -63,6 +65,10 @@ function getCellCenter(cell: number) {
 
 export default function SnakesLaddersScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
+  const [bestScore, setBestScore] = useState(() => {
+    return parseInt(localStorage.getItem('snakesladders_best') || '0', 10);
+  });
 
   const [gameState, setGameState] = useState<'MENU' | 'SETUP' | 'PLAYING' | 'ENDED'>('MENU');
   
@@ -215,9 +221,20 @@ export default function SnakesLaddersScreen() {
     setTimeout(() => {
       setEmojiEffect(null);
       if (finalCell >= 100) {
-        setWinner(players[currentPlayerIndex]);
+        const winPlayer = players[currentPlayerIndex];
+        setWinner(winPlayer);
         setGameState('ENDED');
         localStorage.removeItem('sl_game_state');
+
+        const isP1Winner = currentPlayerIndex === 0;
+        const finalScore = isP1Winner ? 300 : 50;
+        saveGameScore('snakesladders', finalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+
+        const savedBest = parseInt(localStorage.getItem('snakesladders_best') || '0', 10);
+        if (finalScore > savedBest) {
+          localStorage.setItem('snakesladders_best', finalScore.toString());
+          setBestScore(finalScore);
+        }
       } else {
         setCurrentPlayerIndex((prev) => (prev + 1) % players.length);
         setIsMoving(false);
@@ -290,6 +307,12 @@ export default function SnakesLaddersScreen() {
               >
                 <RotateCcw className="w-5 h-5" /> RESUME SAVED GAME
               </button>
+            )}
+
+            {bestScore > 0 && (
+              <div className="flex items-center justify-center gap-1.5 text-amber-400 text-xs font-bold bg-white/5 border border-white/10 rounded-xl py-2 px-3 mt-2">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" /> PERSONAL BEST: {bestScore} pts
+              </div>
             )}
           </div>
         )}

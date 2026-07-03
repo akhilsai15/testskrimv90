@@ -4,6 +4,7 @@ import { ChevronLeft, Share2, Heart, Lightbulb, SkipForward, Play, Trophy, Flame
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
 import { EMOJI_CATEGORIES, Category, Question } from '../constants/emojiQuestions';
 import { readChallengeContext, reportChallengeResult } from '../lib/challengeFlow';
 
@@ -223,6 +224,7 @@ export default function EmojiGuessScreen() {
     setGameState('GAMEOVER');
     const catId = isDailyChallenge ? 'daily' : selectedCategory?.id || 'misc';
     saveHighScore(catId, score);
+    saveGameScore('emoji', score, user?.name || user?.username || 'You', user?.avatar);
   };
 
   const nextQuestion = () => {

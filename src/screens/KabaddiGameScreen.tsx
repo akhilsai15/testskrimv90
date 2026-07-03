@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Share2, Trophy, Users, User, Play, Info, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
 
 const COURT_W = 400;
 const COURT_H = 600;
@@ -16,6 +18,10 @@ type AppPhase = 'MENU' | 'PLAYING' | 'GAMEOVER';
 
 export default function KabaddiGameScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
+  const [bestScore, setBestScore] = useState(() => {
+    return parseInt(localStorage.getItem('kabaddi_best') || '0', 10);
+  });
 
   // High-Level React State
   const [appPhase, setAppPhase] = useState<AppPhase>('MENU');
@@ -117,6 +123,18 @@ export default function KabaddiGameScreen() {
     
     forceUIRender();
   }, [forceUIRender]);
+
+  useEffect(() => {
+    if (appPhase === 'GAMEOVER') {
+      const p1Score = engineRef.current.scores.p1;
+      saveGameScore('kabaddi', p1Score, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      const savedBest = parseInt(localStorage.getItem('kabaddi_best') || '0', 10);
+      if (p1Score > savedBest) {
+        localStorage.setItem('kabaddi_best', p1Score.toString());
+        setBestScore(p1Score);
+      }
+    }
+  }, [appPhase, currentUser]);
 
   const startGame = (selectedMode: Mode) => {
     setMode(selectedMode);
@@ -705,6 +723,12 @@ export default function KabaddiGameScreen() {
                <div className="w-full h-1 bg-white/40 absolute top-1/2 -translate-y-1/2" />
                <div className="font-black text-5xl text-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] z-10">KABADDI</div>
             </div>
+
+            {bestScore > 0 && (
+              <div className="flex items-center justify-center gap-1.5 text-amber-400 text-xs font-bold bg-white/5 border border-white/10 rounded-2xl py-2 px-3 mb-6">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" /> PERSONAL BEST: {bestScore} pts
+              </div>
+            )}
 
             <div className="space-y-4 w-full">
               <button 

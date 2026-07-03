@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Share2, Home, RotateCcw, Zap, Heart, Bot, Users, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
 
 type Player = 'P1' | 'P2' | null; // P1 = ⚡, P2 = 💜
 type GameState = 'MENU' | 'PLAYING' | 'GAME_OVER';
@@ -17,6 +19,7 @@ const WINNING_LINES = [
 
 export default function TicTacToeScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   
   // Setup State
   const [gameState, setGameState] = useState<GameState>('MENU');
@@ -35,6 +38,9 @@ export default function TicTacToeScreen() {
   const [scores, setScores] = useState({ p1: 0, p2: 0, draws: 0 });
   const [matchWinner, setMatchWinner] = useState<Player | 'DRAW' | null>(null);
   const [round, setRound] = useState(1);
+  const [bestScore, setBestScore] = useState(() => {
+    return parseInt(localStorage.getItem('tictactoe_best') || '0', 10);
+  });
 
   const resetBoard = useCallback(() => {
     setBoard(Array(9).fill(null));
@@ -207,33 +213,48 @@ export default function TicTacToeScreen() {
   };
 
   const finalizeRound = (currentScores: typeof scores, result: Player | 'DRAW') => {
+    let finalWinner: Player | 'DRAW' | null = null;
+    let isOver = false;
+
     if (matchType === 'BO5') {
        if (currentScores.p1 === 3) {
-         setMatchWinner('P1');
-         setGameState('GAME_OVER');
+         finalWinner = 'P1';
+         isOver = true;
        } else if (currentScores.p2 === 3) {
-         setMatchWinner('P2');
-         setGameState('GAME_OVER');
+         finalWinner = 'P2';
+         isOver = true;
        } else if (round >= 5 && currentScores.p1 > currentScores.p2) {
-         setMatchWinner('P1');
-         setGameState('GAME_OVER');
+         finalWinner = 'P1';
+         isOver = true;
        } else if (round >= 5 && currentScores.p2 > currentScores.p1) {
-         setMatchWinner('P2');
-         setGameState('GAME_OVER');
+         finalWinner = 'P2';
+         isOver = true;
        } else if (round >= 5 && currentScores.p1 === currentScores.p2) {
-         setMatchWinner('DRAW');
-         setGameState('GAME_OVER');
-       } else {
-         // Auto next round
-         setTimeout(() => {
-           setRound(r => r + 1);
-           resetBoard();
-         }, 1500);
+         finalWinner = 'DRAW';
+         isOver = true;
        }
     } else {
-      // Single match
-      setMatchWinner(result);
+      finalWinner = result;
+      isOver = true;
+    }
+
+    if (isOver) {
+      setMatchWinner(finalWinner);
       setGameState('GAME_OVER');
+      const finalScore = currentScores.p1 * 100 + (finalWinner === 'P1' ? 200 : 0);
+      saveGameScore('tictactoe', finalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      
+      const savedBest = parseInt(localStorage.getItem('tictactoe_best') || '0', 10);
+      if (finalScore > savedBest) {
+        localStorage.setItem('tictactoe_best', finalScore.toString());
+        setBestScore(finalScore);
+      }
+    } else {
+      // Auto next round
+      setTimeout(() => {
+        setRound(r => r + 1);
+        resetBoard();
+      }, 1500);
     }
   };
 
@@ -319,6 +340,12 @@ export default function TicTacToeScreen() {
             >
               START BATTLE <Zap className="w-5 h-5 fill-current" />
             </button>
+
+            {bestScore > 0 && (
+              <div className="mt-4 flex items-center justify-center gap-1.5 text-amber-400 text-xs font-bold bg-white/5 border border-white/10 rounded-xl py-2 px-3">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" /> PERSONAL BEST: {bestScore} pts
+              </div>
+            )}
           </div>
         ) : (
           <div className="w-full max-w-[400px] flex flex-col items-center relative z-10 space-y-8">
