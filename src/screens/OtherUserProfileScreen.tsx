@@ -117,7 +117,7 @@ export default function OtherUserProfileScreen() {
   const selectedMediaUrls = postsGrid.map((p: any) => p.image || p.urls?.[0] || 'https://picsum.photos/400/400').filter(Boolean);
 
   return (
-    <div className="h-full bg-skrim-bg overflow-y-auto no-scrollbar flex flex-col pb-20 relative">
+    <div className="w-full h-full bg-skrim-bg overflow-y-auto no-scrollbar pb-20 relative">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-skrim-bg/80 backdrop-blur-xl border-b border-white/5 py-4 px-4 flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition active:scale-95">
@@ -148,9 +148,9 @@ export default function OtherUserProfileScreen() {
       </div>
 
       {/* Cover Profile layout similar to IdentityScreen */}
-      <div className="relative w-full h-40 group">
-        <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/40 via-blue-500/20 to-skrim-bg opacity-80 mix-blend-screen" />
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-skrim-bg to-transparent" />
+      <div className="relative w-full h-[160px] md:h-[200px] group overflow-hidden">
+        <div className="w-full h-full bg-gradient-to-br from-[#B026FF] to-[#00F0FF] opacity-80 animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-t from-skrim-bg to-transparent opacity-80" />
       </div>
 
       <div className="px-6 relative -top-12">

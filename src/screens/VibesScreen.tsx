@@ -13,6 +13,8 @@ import { useSavedStore } from '../store/savedStore';
 import { ReactionRow } from '../components/ReactionRow';
 import { useNavigate } from 'react-router-dom';
 import { useFollowStatus, followUser, unfollowUser } from '../lib/mock/mockSocialGraph';
+import { SKRIM_REACTIONS } from '../lib/mock/mockData';
+import { triggerReactionAnimation } from '../lib/animations/reactionAnimations';
 
 // ─── helpers ─────────────────────────────────────────────────
 function fmt(n: number) {
@@ -240,6 +242,12 @@ function VibeCard({
     try {
       if (rId) {
         localStorage.setItem(`skrimchat_vibe_reaction_${vibe.id}`, rId);
+        incrementStat('reactionsSent', 1);
+        const reaction = SKRIM_REACTIONS.find(r => r.id === rId);
+        const el = document.getElementById(`vibe-container-${vibe.id}`);
+        if (el && reaction) {
+          triggerReactionAnimation(el, reaction.id, reaction.emoji);
+        }
       } else {
         localStorage.removeItem(`skrimchat_vibe_reaction_${vibe.id}`);
       }
@@ -477,6 +485,7 @@ function VibeCard({
         
         {/* Holographic Media Frame */}
         <div 
+          id={`vibe-container-${vibe.id}`}
           onClick={handleTapMedia}
           className="relative flex-1 w-full bg-black/60 rounded-3xl border border-[#B026FF]/20 shadow-2xl shadow-[#B026FF]/10 overflow-hidden group cursor-pointer"
         >
