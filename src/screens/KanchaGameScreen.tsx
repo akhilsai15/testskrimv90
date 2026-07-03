@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { saveGameScore } from '../lib/gamesStorage';
+import { coinsForScore } from '../lib/coinsWallet';
 
 const COURT_W = 400;
 const COURT_H = 600;
@@ -164,6 +165,7 @@ export default function KanchaGameScreen() {
   const [bestScore, setBestScore] = useState(() => {
     return parseInt(localStorage.getItem('kancha_best') || '0', 10);
   });
+  const [coinsEarned, setCoinsEarned] = useState(0);
 
   const [appPhase, setAppPhase] = useState<AppPhase>('MENU');
   const [level, setLevel] = useState(1);
@@ -488,6 +490,7 @@ export default function KanchaGameScreen() {
          localStorage.setItem('kancha_max_level', maxLvl.toString());
 
          saveGameScore('kancha', s.score, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+         setCoinsEarned(coinsForScore('kancha', s.score));
          const savedBest = parseInt(localStorage.getItem('kancha_best') || '0', 10);
          if (s.score > savedBest) {
             localStorage.setItem('kancha_best', s.score.toString());
@@ -496,6 +499,7 @@ export default function KanchaGameScreen() {
       } else if (s.shotsLeft <= 0) {
          setAppPhase('GAMEOVER');
          saveGameScore('kancha', s.score, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+         setCoinsEarned(coinsForScore('kancha', s.score));
          const savedBest = parseInt(localStorage.getItem('kancha_best') || '0', 10);
          if (s.score > savedBest) {
             localStorage.setItem('kancha_best', s.score.toString());
@@ -902,6 +906,11 @@ export default function KanchaGameScreen() {
                  <Trophy className="w-20 h-20 mx-auto text-amber-400 mb-4" />
                  <h2 className="text-4xl font-black text-white mb-2">Level {level} Cleared!</h2>
                  <p className="text-orange-200 mb-2 font-bold">Awesome aiming.</p>
+                 {coinsEarned > 0 && (
+                   <div className="inline-flex items-center gap-1.5 text-yellow-400 text-xs font-black bg-yellow-500/10 border border-yellow-500/20 rounded-full py-1.5 px-3 mb-4 animate-pulse">
+                     🪙 +{coinsEarned.toLocaleString()} COINS EARNED!
+                   </div>
+                 )}
                  <div className="bg-black/30 rounded-xl p-4 mb-8">
                    <p className="text-sm text-amber-200/70 font-bold uppercase tracking-wider mb-1">Total Score</p>
                    <p className="text-4xl font-black text-yellow-400">{uiState.score}</p>
@@ -929,6 +938,11 @@ export default function KanchaGameScreen() {
                <div className="bg-gray-900 border border-white/10 p-8 rounded-3xl max-w-sm w-full text-center">
                  <div className="text-6xl mb-4">💔</div>
                  <h2 className="text-3xl font-black text-white mb-2">Out of Shots!</h2>
+                 {coinsEarned > 0 && (
+                   <div className="inline-flex items-center gap-1.5 text-yellow-400 text-xs font-black bg-yellow-500/10 border border-yellow-500/20 rounded-full py-1.5 px-3 mb-4 animate-pulse">
+                     🪙 +{coinsEarned.toLocaleString()} COINS EARNED!
+                   </div>
+                 )}
                  <p className="text-white/60 mb-2">You couldn't clear all targets.</p>
                  <div className="bg-black/50 rounded-xl p-4 mb-8">
                    <p className="text-sm text-white/50 font-bold uppercase tracking-wider mb-1">Final Score</p>

@@ -103,12 +103,24 @@ export function spendCoins(amount: number, reason: string): boolean {
 // session" ceiling, then scaled into the requested 10,000–50,000-coin
 // range for a strong run. A so-so run still earns something, just less.
 const GAME_SCORE_CEILING: Record<string, number> = {
-  snake: 5000,
+  gilli: 1000,
   lagori: 1200,
   kancha: 3000,
-  quiz: 10,
   kabaddi: 400,
-  ludo: 100, // ludo doesn't have a numeric score; treated as flat win/lose elsewhere
+  snake: 5000,
+  tictactoe: 100,
+  ludo: 100,
+  snakesladders: 100,
+  truthdare: 200,
+  quiz: 10,
+  emoji: 50,
+  chess: 2000,
+  mafia: 1000,
+  wordchain: 100,
+  bluffquiz: 100,
+  uno: 1000,
+  bubbleshooter: 5000,
+  bounceball: 5000,
 };
 
 const MIN_COINS_PER_GAME = 500; // floor, so even a rough first attempt earns something

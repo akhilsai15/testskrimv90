@@ -8,9 +8,11 @@ export interface GameScore {
 }
 
 const GAME_LABELS: Record<string, string> = {
-  snake: 'Snake', lagori: 'Lagori', kancha: 'Kancha', quiz: 'Quiz',
+  snake: 'Snake', lagori: 'Lagori', kancha: 'Kancha strike', quiz: 'Quiz',
   kabaddi: 'Kabaddi', ludo: 'Ludo', gillidanda: 'Gilli Danda', uno: 'UNO',
-  chess: 'Chess', mafia: 'Mafia',
+  chess: 'Chess', mafia: 'Mafia', tictactoe: 'Tic Tac Toe', snakesladders: 'Snakes & Ladders',
+  truthdare: 'Truth or Dare', emoji: 'Emoji Guess', wordchain: 'Word Chain',
+  bluffquiz: 'Bluff Quiz', bubbleshooter: 'Bubble Shooter', bounceball: 'Bounce Ball',
 };
 
 export const saveGameScore = (gameId: string, score: number, playerName: string, avatar?: string) => {

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Users, Eye, Moon, Sun, Skull, Shield, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
+import { coinsForScore } from '../lib/coinsWallet';
 
 type Role = 'Mafia' | 'Detective' | 'Doctor' | 'Villager';
 type Phase = 'setup' | 'assign' | 'night' | 'day' | 'vote' | 'result' | 'gameover';
@@ -28,9 +31,11 @@ function assignRoles(count: number): Role[] {
 
 export default function MafiaGameScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [playerCount, setPlayerCount] = useState(6);
   const [players, setPlayers] = useState<Player[]>([]);
   const [phase, setPhase] = useState<Phase>('setup');
+  const [coinsEarned, setCoinsEarned] = useState(0);
   const [currentReveal, setCurrentReveal] = useState(0);
   const [showRole, setShowRole] = useState(false);
   const [nightTarget, setNightTarget] = useState<number|null>(null);
@@ -43,6 +48,17 @@ export default function MafiaGameScreen() {
   const [nightPhaseStep, setNightPhaseStep] = useState<'mafia'|'doctor'|'detective'|'done'>('mafia');
   const [tempSave, setTempSave] = useState<number|null>(null);
   const [tempDetective, setTempDetective] = useState<number|null>(null);
+
+  useEffect(() => {
+    if (phase === 'gameover') {
+      const winner = checkWin();
+      const finalScore = winner === 'village' ? 1000 : 500;
+      saveGameScore('mafia', finalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      setCoinsEarned(coinsForScore('mafia', finalScore));
+    } else {
+      setCoinsEarned(0);
+    }
+  }, [phase, currentUser]);
 
   const startGame = () => {
     const roles = assignRoles(playerCount);
@@ -271,6 +287,11 @@ export default function MafiaGameScreen() {
       <div className="text-6xl mb-4">{win==='village'?'🏆':'💀'}</div>
       <h1 className="text-3xl font-black text-white mb-2">{win==='village'?'Village Wins!':'Mafia Wins!'}</h1>
       <p className="text-white/50 text-sm mb-6">{win==='village'?'All Mafia eliminated!':'Mafia took control!'}</p>
+      {coinsEarned > 0 && (
+        <div className="flex items-center justify-center gap-1.5 text-yellow-400 text-sm font-black bg-yellow-500/10 border border-yellow-500/20 rounded-2xl py-2 px-4 mb-6 animate-pulse">
+          🪙 +{coinsEarned.toLocaleString()} COINS EARNED!
+        </div>
+      )}
       <div className="w-full max-w-xs bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
         <p className="text-white/60 text-xs mb-3">Final Roles Revealed:</p>
         {players.map(p=>(

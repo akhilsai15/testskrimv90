@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Zap, Brain, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
+import { coinsForScore } from '../lib/coinsWallet';
 
 interface Question { q: string; correct: string; bluffs: string[]; }
 
@@ -34,6 +37,7 @@ function makeQuestion(q: Question): BluffQuestion {
 
 export default function BluffQuizScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [phase, setPhase] = useState<Phase>('menu');
   const [questions, setQuestions] = useState<BluffQuestion[]>([]);
   const [qIndex, setQIndex] = useState(0);
@@ -44,6 +48,17 @@ export default function BluffQuizScreen() {
   const [timer, setTimer] = useState(20);
   const [showResult, setShowResult] = useState(false);
   const [grind, setGrind] = useState(0);
+  const [coinsEarned, setCoinsEarned] = useState(0);
+
+  useEffect(() => {
+    if (phase === 'gameover') {
+      const finalScore = scores.P1;
+      saveGameScore('bluff', finalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      setCoinsEarned(coinsForScore('bluff', finalScore));
+    } else {
+      setCoinsEarned(0);
+    }
+  }, [phase, scores.P1, currentUser]);
 
   const start = () => {
     const qs = [...QUESTIONS].sort(()=>Math.random()-0.5).slice(0,10).map(makeQuestion);
@@ -96,6 +111,11 @@ export default function BluffQuizScreen() {
       <div className="min-h-screen bg-[#080810] flex flex-col items-center justify-center p-6">
         <div className="text-6xl mb-4">🏆</div>
         <h1 className="text-3xl font-black text-white mb-4">{winner==='It\'s a tie'?'Tie Game!':winner+' Wins!'}</h1>
+        {coinsEarned > 0 && (
+          <div className="flex items-center justify-center gap-1.5 text-yellow-400 text-sm font-black bg-yellow-500/10 border border-yellow-500/20 rounded-2xl py-2 px-4 mb-6 animate-pulse">
+            🪙 +{coinsEarned.toLocaleString()} COINS EARNED!
+          </div>
+        )}
         <div className="flex gap-6 mb-8">
           <div className="text-center bg-[#00F0FF]/10 border border-[#00F0FF]/30 rounded-2xl px-8 py-4"><p className="text-[#00F0FF] font-black text-3xl">{scores.P1}</p><p className="text-white/50 text-sm">P1</p></div>
           <div className="text-center bg-[#B026FF]/10 border border-[#B026FF]/30 rounded-2xl px-8 py-4"><p className="text-[#B026FF] font-black text-3xl">{scores.P2}</p><p className="text-white/50 text-sm">P2</p></div>

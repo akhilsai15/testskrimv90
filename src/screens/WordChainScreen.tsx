@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Bot, Users, Clock, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
+import { coinsForScore } from '../lib/coinsWallet';
 
 type Mode = 'menu' | 'ai' | 'friend';
 const AI_WORDS: string[] = [
@@ -21,6 +24,7 @@ function getAIWord(lastLetter: string, used: Set<string>): string|null {
 
 export default function WordChainScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [mode, setMode] = useState<Mode>('menu');
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [chain, setChain] = useState<string[]>([]);
@@ -30,12 +34,23 @@ export default function WordChainScreen() {
   const [error, setError] = useState('');
   const [scores, setScores] = useState({P1:0,P2:0,AI:0});
   const [gameOver, setGameOver] = useState(false);
+  const [coinsEarned, setCoinsEarned] = useState(0);
   const [winner, setWinner] = useState('');
   const [aiThinking, setAiThinking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const usedWords = new Set(chain.map(w=>w.toLowerCase()));
   const lastWord = chain[chain.length-1];
   const requiredLetter = lastWord ? lastWord[lastWord.length-1].toUpperCase() : null;
+
+  useEffect(() => {
+    if (gameOver) {
+      const finalScore = scores.P1 * 100; // P1 is the user
+      saveGameScore('wordchain', finalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      setCoinsEarned(coinsForScore('wordchain', finalScore));
+    } else {
+      setCoinsEarned(0);
+    }
+  }, [gameOver, scores.P1, currentUser]);
 
   const startGame = (m: Mode) => {
     setMode(m); setChain([]); setInput(''); setCurrentPlayer('P1');
@@ -167,6 +182,11 @@ export default function WordChainScreen() {
             <div className="text-5xl mb-3">🏆</div>
             <h2 className="text-white font-black text-2xl mb-1">{winner} Wins!</h2>
             <p className="text-white/50 text-sm mb-4">{chain.length} words in chain</p>
+            {coinsEarned > 0 && (
+              <div className="flex items-center justify-center gap-1.5 text-yellow-400 text-xs font-black bg-yellow-500/10 border border-yellow-500/20 rounded-full py-1.5 px-3 mb-4 animate-pulse">
+                🪙 +{coinsEarned.toLocaleString()} COINS EARNED!
+              </div>
+            )}
             <div className="flex gap-3 justify-center mb-6">
               <div className="bg-[#00F0FF]/10 border border-[#00F0FF]/30 rounded-xl px-4 py-2"><p className="text-[#00F0FF] font-black">{scores.P1}</p><p className="text-white/40 text-xs">P1</p></div>
               <div className="bg-[#B026FF]/10 border border-[#B026FF]/30 rounded-xl px-4 py-2"><p className="text-[#B026FF] font-black">{mode==='ai'?scores.AI:scores.P2}</p><p className="text-white/40 text-xs">{mode==='ai'?'AI':'P2'}</p></div>

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, RotateCcw } from 'lucide-react';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
+import { coinsForScore } from '../lib/coinsWallet';
 
 const COLS = 9, ROWS = 10, R = 22;
 const COLORS = ['#FF4444','#4488FF','#44CC44','#FFCC00','#FF44CC','#44CCCC'];
@@ -30,6 +33,7 @@ function dist(x1: number, y1: number, x2: number, y2: number) { return Math.sqrt
 
 export default function BubbleShooterScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
@@ -44,6 +48,17 @@ export default function BubbleShooterScreen() {
   const bubblesRef = useRef(bubbles);
   const projRef = useRef<Projectile|null>(null);
   const scoreRef = useRef(score);
+  const [coinsEarned, setCoinsEarned] = useState(0);
+
+  useEffect(() => {
+    if (gameOver || win) {
+      const finalScore = score;
+      saveGameScore('bubble', finalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      setCoinsEarned(coinsForScore('bubble', finalScore));
+    } else {
+      setCoinsEarned(0);
+    }
+  }, [gameOver, win, score, currentUser]);
 
   useEffect(() => { bubblesRef.current = bubbles; }, [bubbles]);
   useEffect(() => { projRef.current = proj; }, [proj]);
@@ -195,7 +210,12 @@ export default function BubbleShooterScreen() {
               <div className="text-5xl mb-3">{win?'🏆':'💥'}</div>
               <h2 className="text-white font-black text-2xl mb-1">{win?'Level Clear!':'Game Over!'}</h2>
               <p className="text-white/60 text-sm mb-1">Score: {score}</p>
-              <p className="text-white/40 text-xs mb-6">Shots: {shots}</p>
+              <p className="text-white/40 text-xs mb-4">Shots: {shots}</p>
+              {coinsEarned > 0 && (
+                <div className="flex items-center justify-center gap-1.5 text-yellow-400 text-xs font-black bg-yellow-500/10 border border-yellow-500/20 rounded-full py-1.5 px-3 mb-6 animate-pulse">
+                  🪙 +{coinsEarned.toLocaleString()} COINS EARNED!
+                </div>
+              )}
               <div className="flex gap-3">
                 {win&&level<10&&<button onClick={()=>startLevel(level+1)} className="flex-1 py-3 bg-gradient-to-r from-[#B026FF] to-[#00F0FF] rounded-2xl text-black font-black">Level {level+1} →</button>}
                 <button onClick={()=>{setScore(0);startLevel(1);}} className="flex-1 py-3 bg-white/10 border border-white/20 rounded-2xl text-white font-bold">Restart</button>

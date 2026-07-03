@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { saveGameScore } from '../lib/gamesStorage';
+import { coinsForScore } from '../lib/coinsWallet';
 
 const COURT_W = 400;
 const COURT_H = 600;
@@ -22,6 +23,7 @@ export default function KabaddiGameScreen() {
   const [bestScore, setBestScore] = useState(() => {
     return parseInt(localStorage.getItem('kabaddi_best') || '0', 10);
   });
+  const [coinsEarned, setCoinsEarned] = useState(0);
 
   // High-Level React State
   const [appPhase, setAppPhase] = useState<AppPhase>('MENU');
@@ -128,6 +130,7 @@ export default function KabaddiGameScreen() {
     if (appPhase === 'GAMEOVER') {
       const p1Score = engineRef.current.scores.p1;
       saveGameScore('kabaddi', p1Score, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      setCoinsEarned(coinsForScore('kabaddi', p1Score));
       const savedBest = parseInt(localStorage.getItem('kabaddi_best') || '0', 10);
       if (p1Score > savedBest) {
         localStorage.setItem('kabaddi_best', p1Score.toString());
@@ -844,9 +847,15 @@ export default function KabaddiGameScreen() {
         {appPhase === 'GAMEOVER' && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col w-full max-w-sm px-6 items-center justify-center">
             <div className="text-7xl mb-6 drop-shadow-[0_0_20px_rgba(255,215,0,0.5)]">🏆</div>
-            <h2 className="text-4xl font-black text-white mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
+            <h2 className="text-4xl font-black text-white mb-2 text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
               {uiState.p1Score > uiState.p2Score ? 'PLAYER 1 WINS' : uiState.p2Score > uiState.p1Score ? (mode === 'SOLO' ? 'AI WINS' : 'PLAYER 2 WINS') : 'IT\'S A TIE'}
             </h2>
+            
+            {coinsEarned > 0 && (
+              <div className="flex items-center justify-center gap-1.5 text-yellow-400 text-sm font-black bg-yellow-500/10 border border-yellow-500/20 rounded-2xl py-2 px-4 mb-6 animate-pulse">
+                🪙 +{coinsEarned.toLocaleString()} COINS EARNED!
+              </div>
+            )}
             
             <div className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 mb-8 backdrop-blur-sm shadow-2xl flex flex-col gap-4">
                <div className="flex justify-between items-center bg-blue-500/10 p-4 rounded-xl border border-blue-500/20">

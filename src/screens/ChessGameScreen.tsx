@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, RotateCcw, Bot, Users, Trophy, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
+import { coinsForScore } from '../lib/coinsWallet';
 
 type Color = 'w' | 'b';
 type PieceType = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P';
@@ -101,6 +104,7 @@ function getBestMove(board: Board, difficulty: Difficulty): [number,number,numbe
 
 export default function ChessGameScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [mode, setMode] = useState<Mode>('menu');
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [board, setBoard] = useState<Board>(initBoard());
@@ -111,8 +115,27 @@ export default function ChessGameScreen() {
   const [captured, setCaptured] = useState<{w:Piece[],b:Piece[]}>({w:[],b:[]});
   const [moveCount, setMoveCount] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [coinsEarned, setCoinsEarned] = useState(0);
   const [aiThinking, setAiThinking] = useState(false);
   const [lastMove, setLastMove] = useState<[number,number,number,number]|null>(null);
+
+  useEffect(() => {
+    if (gameOver) {
+      const isWin = status.includes('White wins');
+      const blackPiecesCapturedByPlayer = captured.w;
+      const scoreValue = blackPiecesCapturedByPlayer.reduce((sum, p) => {
+        if (!p) return sum;
+        const val = {P:1,N:3,B:3,R:5,Q:9,K:0}[p.type] || 0;
+        return sum + val;
+      }, 0) * 100 + (isWin ? 1000 : 0);
+      const finalScore = Math.max(100, scoreValue);
+      
+      saveGameScore('chess', finalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      setCoinsEarned(coinsForScore('chess', finalScore));
+    } else {
+      setCoinsEarned(0);
+    }
+  }, [gameOver, status, captured.w, currentUser]);
 
   const startGame = (m: Mode) => {
     setMode(m); setBoard(initBoard()); setSelected(null); setHighlights([]);
@@ -217,7 +240,14 @@ export default function ChessGameScreen() {
       {/* Turn indicator */}
       <div className="px-4 py-2">
         {gameOver ? (
-          <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-xl px-4 py-2 text-center text-yellow-400 font-bold">{status}</div>
+          <div className="space-y-2">
+            <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-xl px-4 py-2 text-center text-yellow-400 font-bold">{status}</div>
+            {coinsEarned > 0 && (
+              <div className="flex items-center justify-center gap-1 bg-yellow-500/10 border border-yellow-500/20 rounded-xl py-1.5 px-3 text-xs text-yellow-400 font-black animate-pulse">
+                🪙 +{coinsEarned.toLocaleString()} COINS EARNED!
+              </div>
+            )}
+          </div>
         ) : (
           <div className={`rounded-xl px-4 py-2 text-center font-bold text-sm ${turn==='w'?'bg-white/10 text-white':'bg-[#B026FF]/20 text-[#B026FF]'}`}>
             {aiThinking?'🤖 AI thinking...':`${turn==='w'?'⚡ White':'💜 Black'}'s turn`}

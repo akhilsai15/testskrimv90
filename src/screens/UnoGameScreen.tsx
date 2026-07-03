@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
+import { coinsForScore } from '../lib/coinsWallet';
 
 type Color = 'red'|'blue'|'green'|'yellow'|'wild';
 type Value = '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'Skip'|'Reverse'|'+2'|'Wild'|'+4';
@@ -32,6 +35,7 @@ function canPlay(card: Card, top: Card, activeColor: Color): boolean {
 
 export default function UnoGameScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [deck, setDeck] = useState<Card[]>([]);
   const [hands, setHands] = useState<Card[][]>([[],[]]);
   const [pile, setPile] = useState<Card[]>([]);
@@ -46,6 +50,17 @@ export default function UnoGameScreen() {
   const [pendingCard, setPendingCard] = useState<Card|null>(null);
   const [started, setStarted] = useState(false);
   const [message, setMessage] = useState('');
+  const [coinsEarned, setCoinsEarned] = useState(0);
+
+  useEffect(() => {
+    if (gameOver) {
+      const finalScore = winner === 'Player 1' ? 1000 : 200;
+      saveGameScore('uno', finalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      setCoinsEarned(coinsForScore('uno', finalScore));
+    } else {
+      setCoinsEarned(0);
+    }
+  }, [gameOver, winner, currentUser]);
 
   const initGame = () => {
     const d = buildDeck();
@@ -204,7 +219,12 @@ export default function UnoGameScreen() {
           <div className="bg-[#12121C] border border-white/20 rounded-3xl p-8 text-center mx-4">
             <div className="text-5xl mb-3">🏆</div>
             <h2 className="text-white font-black text-2xl mb-1">{winner} Wins!</h2>
-            <p className="text-white/50 text-sm mb-6">UNO Champion!</p>
+            <p className="text-white/50 text-sm mb-4">UNO Champion!</p>
+            {coinsEarned > 0 && (
+              <div className="flex items-center justify-center gap-1.5 text-yellow-400 text-xs font-black bg-yellow-500/10 border border-yellow-500/20 rounded-full py-1.5 px-3 mb-6 animate-pulse">
+                🪙 +{coinsEarned.toLocaleString()} COINS EARNED!
+              </div>
+            )}
             <button onClick={initGame} className="w-full py-3 bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 rounded-2xl text-white font-black">Play Again</button>
           </div>
         </motion.div>

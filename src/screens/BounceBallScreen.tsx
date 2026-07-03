@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, RotateCcw } from 'lucide-react';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { saveGameScore } from '../lib/gamesStorage';
+import { coinsForScore } from '../lib/coinsWallet';
 
 const W = 360, H = 500;
 const PADDLE_W = 70, PADDLE_H = 10, BALL_R = 8;
@@ -44,6 +47,7 @@ function buildBricks(level: number): Brick[] {
 
 export default function BounceBallScreen() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number | undefined>(undefined);
   const stateRef = useRef({
@@ -59,6 +63,17 @@ export default function BounceBallScreen() {
   });
   const [displayState, setDisplayState] = useState({ lives: 3, score: 0, level: 1, gameOver: false, win: false, started: false });
   const touchRef = useRef<number|null>(null);
+  const [coinsEarned, setCoinsEarned] = useState(0);
+
+  useEffect(() => {
+    if (displayState.gameOver || displayState.win) {
+      const finalScore = displayState.score;
+      saveGameScore('bounce', finalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      setCoinsEarned(coinsForScore('bounce', finalScore));
+    } else {
+      setCoinsEarned(0);
+    }
+  }, [displayState.gameOver, displayState.win, displayState.score, currentUser]);
 
   const resetBall = () => {
     const s = stateRef.current;
@@ -225,7 +240,12 @@ export default function BounceBallScreen() {
             <div className="bg-[#12121C] border border-white/20 rounded-3xl p-8 text-center mx-4">
               <div className="text-5xl mb-3">{ds.win?'🏆':'💥'}</div>
               <h2 className="text-white font-black text-2xl mb-1">{ds.win?'Level Clear!':'Game Over!'}</h2>
-              <p className="text-white/60 text-sm mb-6">Score: {ds.score}</p>
+              <p className="text-white/60 text-sm mb-4">Score: {ds.score}</p>
+              {coinsEarned > 0 && (
+                <div className="flex items-center justify-center gap-1.5 text-yellow-400 text-xs font-black bg-yellow-500/10 border border-yellow-500/20 rounded-full py-1.5 px-3 mb-6 animate-pulse">
+                  🪙 +{coinsEarned.toLocaleString()} COINS EARNED!
+                </div>
+              )}
               <div className="flex gap-3">
                 {ds.win && ds.level < 10 && <button onClick={()=>startLevel(ds.level+1)} className="flex-1 py-3 bg-gradient-to-r from-[#B026FF] to-[#00F0FF] rounded-2xl text-black font-black text-sm">Level {ds.level+1} →</button>}
                 <button onClick={()=>startLevel(ds.level)} className="flex-1 py-3 bg-white/10 border border-white/20 rounded-2xl text-white font-bold text-sm">Retry</button>

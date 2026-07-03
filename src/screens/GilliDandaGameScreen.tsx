@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Play, Trophy, RefreshCw, X, Wind, Zap, Target, Flame, Star, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
-import { addCoins } from '../lib/coinsWallet';
+import { addCoins, coinsForScore } from '../lib/coinsWallet';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { saveGameScore } from '../lib/gamesStorage';
 
@@ -200,6 +200,7 @@ export default function GilliDandaGameScreen() {
   useEffect(() => {
     if (appPhase === 'GAMEOVER') {
       saveGameScore('gilli', totalScore, currentUser?.name || currentUser?.username || 'You', currentUser?.avatar);
+      setCoinsEarned(coinsForScore('gilli', totalScore));
       const savedBestScore = parseInt(localStorage.getItem('gillidanda_best_score') || '0', 10);
       if (totalScore > savedBestScore) {
         localStorage.setItem('gillidanda_best_score', totalScore.toString());

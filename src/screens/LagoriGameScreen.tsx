@@ -78,6 +78,7 @@ export default function LagoriGameScreen() {
   const currentUser = useCurrentUser();
   
   const [appPhase, setAppPhase] = useState<AppPhase>('MENU');
+  const [coinsEarned, setCoinsEarned] = useState(0);
   const [uiState, setUiState] = useState({
     level: 1,
     score: 0,
@@ -112,6 +113,7 @@ export default function LagoriGameScreen() {
      let isNewBest = false;
      
      let newRank = saveGameScore('lagori', s.score, currentUser?.name || 'You', currentUser?.avatar);
+     setCoinsEarned(coinsForScore('lagori', s.score));
 
      if (s.score > currentBest) {
          localStorage.setItem('lagori_best', s.score.toString());
