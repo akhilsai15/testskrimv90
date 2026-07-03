@@ -835,24 +835,52 @@ export function MessageBubble({ message, isConsecutiveTop, isConsecutiveBottom, 
               {message.senderName}
            </span>
         )}
-        <motion.div 
-          onPointerDown={handlePointerDown}
-          onPointerUp={clearTimer}
-          onPointerCancel={clearTimer}
-          onPointerLeave={clearTimer}
-          animate={{ scale: isActive ? 1.05 : 1 }}
-          transition={{ type: 'spring', damping: 20 }}
-          style={bubbleStyle}
-          className="select-none cursor-pointer"
-        >
-          {message.replyTo && (
-            <div className={`mx-3 mt-3 mb-1 p-2 rounded-lg text-[13px] border-l-2 ${isMe ? 'bg-black/20 border-white/50 text-white/90' : 'bg-white/10 border-neon-purple text-white/80'}`}>
-              <div className="font-bold text-xs mb-0.5" style={{ color: isMe ? 'rgba(255,255,255,0.7)' : '#B026FF' }}>{message.replyTo.senderName}</div>
-              <div className="truncate opacity-80">{message.replyTo.text}</div>
-            </div>
+        <div className="relative max-w-[75%]">
+          <motion.div 
+            onPointerDown={handlePointerDown}
+            onPointerUp={clearTimer}
+            onPointerCancel={clearTimer}
+            onPointerLeave={clearTimer}
+            animate={{ scale: isActive ? 1.05 : 1 }}
+            transition={{ type: 'spring', damping: 20 }}
+            style={bubbleStyle}
+            className="select-none cursor-pointer"
+          >
+            {message.replyTo && (
+              <div className={`mx-3 mt-3 mb-1 p-2 rounded-lg text-[13px] border-l-2 ${isMe ? 'bg-black/20 border-white/50 text-white/90' : 'bg-white/10 border-neon-purple text-white/80'}`}>
+                <div className="font-bold text-xs mb-0.5" style={{ color: isMe ? 'rgba(255,255,255,0.7)' : '#B026FF' }}>{message.replyTo.senderName}</div>
+                <div className="truncate opacity-80">{message.replyTo.text}</div>
+              </div>
+            )}
+            {renderContent()}
+          </motion.div>
+
+          {/* Reactions Pill */}
+          <AnimatePresence>
+          {message.reactions && Object.keys(message.reactions).length > 0 && (
+            <motion.div 
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [1.2, 1], opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: 'spring', damping: 15 }}
+              className={`absolute -bottom-4 ${isMe ? 'left-6' : 'right-6'} bg-white/10 backdrop-blur-md border border-white/15 rounded-full px-2 py-1 flex items-center gap-1 shadow-lg cursor-pointer z-10 hover:scale-105 active:scale-95`}
+              onClick={() => onReactionClick?.(message)}
+            >
+              {Object.entries(message.reactions).map(([emoji, users], idx) => (
+                <motion.div 
+                  key={emoji}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className={`text-xs font-bold flex items-center gap-0.5 ${emoji === '⚡' ? 'text-yellow-400' : 'text-white/80'}`}
+                >
+                  <span>{emoji}</span>
+                  <span>{users.length}</span>
+                </motion.div>
+              ))}
+            </motion.div>
           )}
-          {renderContent()}
-        </motion.div>
+          </AnimatePresence>
+        </div>
         
         {/* Pin indicator */}
         {isPinned && (
@@ -861,32 +889,6 @@ export function MessageBubble({ message, isConsecutiveTop, isConsecutiveBottom, 
             <span className="text-[10px] text-purple-400 font-medium">Pinned</span>
           </div>
         )}
-
-        {/* Reactions Pill */}
-        <AnimatePresence>
-        {message.reactions && Object.keys(message.reactions).length > 0 && (
-          <motion.div 
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [1.2, 1], opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: 'spring', damping: 15 }}
-            className={`absolute -bottom-4 ${isMe ? 'left-6' : 'right-6'} bg-white/10 backdrop-blur-md border border-white/15 rounded-full px-2 py-1 flex items-center gap-1 shadow-lg cursor-pointer z-10 hover:scale-105 active:scale-95`}
-            onClick={() => onReactionClick?.(message)}
-          >
-            {Object.entries(message.reactions).map(([emoji, users], idx) => (
-              <motion.div 
-                key={emoji}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className={`text-xs font-bold flex items-center gap-0.5 ${emoji === '⚡' ? 'text-yellow-400' : 'text-white/80'}`}
-              >
-                <span>{emoji}</span>
-                <span>{users.length}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-        </AnimatePresence>
 
         {!isConsecutiveBottom && <div className={message.reactions && Object.keys(message.reactions).length > 0 ? "mt-4" : ""}>{renderTimeAndStatus()}</div>}
       </div>
