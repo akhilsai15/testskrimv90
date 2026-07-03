@@ -1084,16 +1084,20 @@ export default function VibesScreen() {
   const [activeFilter, setActiveFilter] = useState('foryou');
   const [mood] = useState(() => localStorage.getItem('skrimchat_mood') || getDefaultMood());
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   // Filter → seed offset so each tab produces different content
   const filterSeedOffset: Record<string, number> = {
-    foryou: 0, following: 500, trending: 1000, new: 1500, nearby: 2000,
+    foryou: 0, following: 500, trending: 1000, new: 1500, nearby: 2000, myvibes: 3000,
   };
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Vibes you've actually posted, persisted in localStorage. Loaded once and
-  // merged into the feed below — keeping it separate from `vibes` (which gets
-  // wiped/refetched on every filter change) means your own posts survive that.
+  // Session-only user vibes uploaded in the current session so that they get immediate
+  // visual feedback in the For You feed without permanently dominating index 0 on future reloads.
+  const [sessionUserVibes, setSessionUserVibes] = useState<VibePost[]>([]);
+
+  // Persistent user-uploaded vibes
   const [userVibes, setUserVibes] = useState<VibePost[]>(() => {
     try {
       const parsed = JSON.parse(localStorage.getItem('skrimchat_user_vibes') || '[]');
@@ -1101,42 +1105,83 @@ export default function VibesScreen() {
     } catch { return []; }
   });
 
+  // Randomized offset on mount so returning always shows new/different vibes
+  const [refreshOffsets, setRefreshOffsets] = useState<Record<string, number>>(() => {
+    return {
+      foryou: Math.floor(Math.random() * 50) * 10,
+      following: Math.floor(Math.random() * 50) * 10,
+      trending: Math.floor(Math.random() * 50) * 10,
+      new: Math.floor(Math.random() * 50) * 10,
+      nearby: Math.floor(Math.random() * 50) * 10,
+    };
+  });
+
   const handlePosted = useCallback((vibe: VibePost) => {
     setUserVibes(prev => [vibe, ...prev]);
+    setSessionUserVibes(prev => [vibe, ...prev]);
     setActiveFilter('foryou');
     setCurrentIdx(0);
   }, []);
+
+  // Action to refresh vibes and load new ones
+  const handleRefresh = useCallback(() => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setRefreshOffsets(prev => ({
+      ...prev,
+      [activeFilter]: (prev[activeFilter] ?? 0) + 12 + Math.floor(Math.random() * 15) * 5
+    }));
+    setCurrentIdx(0);
+    setLoading(true);
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 700);
+  }, [activeFilter, isRefreshing]);
 
   // Initial load
   useEffect(() => {
     setLoading(true);
     setCurrentIdx(0);
     setTimeout(() => {
-      const offset = filterSeedOffset[activeFilter] ?? 0;
+      if (activeFilter === 'myvibes') {
+        setVibes(userVibes);
+        setLoading(false);
+        return;
+      }
+
+      const baseOffset = filterSeedOffset[activeFilter] ?? 0;
+      const rOffset = refreshOffsets[activeFilter] ?? 0;
+      const offset = baseOffset + rOffset;
+
       // For "trending" sort by score desc already; "new" = reverse freshness; "following"/"nearby" = seeded different set
       let initial = assembleVibesFeed(mood, offset, 12);
       if (activeFilter === 'trending') initial = [...initial].sort((a, b) => b.vibeScore - a.vibeScore);
       if (activeFilter === 'new') initial = [...initial].sort((a, b) => b.createdAt - a.createdAt);
-      // Your own posts lead the For You feed, newest first — same idea as
-      // Pulse prepending fresh posts instead of waiting for a refetch.
-      if (activeFilter === 'foryou' && userVibes.length > 0) initial = [...userVibes, ...initial];
+      
+      // Your own recently posted vibes in this session lead the For You feed
+      if (activeFilter === 'foryou' && sessionUserVibes.length > 0) {
+        initial = [...sessionUserVibes, ...initial];
+      }
       setVibes(initial);
       setLoading(false);
     }, 600);
-  }, [mood, activeFilter, userVibes]);
+  }, [mood, activeFilter, userVibes, refreshOffsets, sessionUserVibes]);
 
   // Load more when near end
   useEffect(() => {
+    if (activeFilter === 'myvibes') return;
     if (!loadingMore && vibes.length > 0 && currentIdx >= vibes.length - 3) {
       setLoadingMore(true);
       setTimeout(() => {
-        const offset = (filterSeedOffset[activeFilter] ?? 0) + vibes.length;
+        const baseOffset = filterSeedOffset[activeFilter] ?? 0;
+        const rOffset = refreshOffsets[activeFilter] ?? 0;
+        const offset = baseOffset + rOffset + vibes.length;
         const more = assembleVibesFeed(mood, offset, 8);
         setVibes(prev => [...prev, ...more]);
         setLoadingMore(false);
       }, 400);
     }
-  }, [currentIdx, vibes.length, loadingMore, mood]);
+  }, [currentIdx, vibes.length, loadingMore, mood, activeFilter, refreshOffsets]);
 
   const goNext = useCallback(() => {
     setCurrentIdx(i => Math.min(i + 1, vibes.length - 1));
@@ -1188,13 +1233,14 @@ export default function VibesScreen() {
     { id: 'trending', label: '🔥 Trending' },
     { id: 'new',      label: '✨ Fresh' },
     { id: 'nearby',   label: '📍 Nearby' },
+    { id: 'myvibes',  label: '👤 My Vibes' },
   ];
 
   if (loading) {
     return (
       <div ref={containerRef} className="relative w-full h-full min-h-[500px] bg-black overflow-hidden flex flex-col">
         {/* Filter tabs — top overlay */}
-        <div className="absolute top-7 left-0 right-0 z-30">
+        <div className="absolute top-7 left-0 right-[100px] z-30">
           <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar pb-1">
             {FILTERS.map(f => (
               <button
@@ -1210,6 +1256,24 @@ export default function VibesScreen() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Header action buttons on Top Right */}
+        <div className="absolute top-7 right-4 z-30 flex items-center gap-2">
+          {activeFilter !== 'myvibes' && (
+            <button
+              disabled
+              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center shadow-lg border border-white/10 text-white/30"
+            >
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            </button>
+          )}
+          <button
+            disabled
+            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B026FF]/50 to-[#00F0FF]/50 flex items-center justify-center shadow-lg border border-white/10 text-white/30"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="w-full h-full bg-black flex items-center justify-center pt-16">
@@ -1232,7 +1296,7 @@ export default function VibesScreen() {
     return (
       <div ref={containerRef} className="relative w-full h-full min-h-[500px] bg-black overflow-hidden flex flex-col">
         {/* Filter tabs — top overlay */}
-        <div className="absolute top-7 left-0 right-0 z-30">
+        <div className="absolute top-7 left-0 right-[100px] z-30">
           <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar pb-1">
             {FILTERS.map(f => (
               <button
@@ -1250,11 +1314,39 @@ export default function VibesScreen() {
           </div>
         </div>
 
+        {/* Header action buttons on Top Right */}
+        <div className="absolute top-7 right-4 z-30 flex items-center gap-2">
+          {activeFilter !== 'myvibes' && (
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={handleRefresh}
+              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center shadow-lg border border-white/10 text-white/80 hover:text-white"
+              title="Refresh Vibes"
+            >
+              <motion.div
+                animate={isRefreshing ? { rotate: 360 } : {}}
+                transition={{ repeat: isRefreshing ? Infinity : 0, duration: 1, ease: 'linear' }}
+              >
+                <RefreshCw className="w-4 h-4" />
+              </motion.div>
+            </motion.button>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={() => setIsCreateOpen(true)}
+            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B026FF] to-[#00F0FF] flex items-center justify-center shadow-lg border border-white/20 text-white"
+          >
+            <Plus className="w-5 h-5" />
+          </motion.button>
+        </div>
+
         <div className="w-full h-full bg-black flex flex-col items-center justify-center text-center p-6 relative pt-16">
           <Play className="w-12 h-12 text-[#B026FF] mb-4 opacity-40 animate-pulse" />
           <h3 className="text-white font-bold text-lg mb-2">No Vibes Found</h3>
           <p className="text-white/40 text-sm max-w-xs mb-6">
-            There are no vibes posted in this category yet. Be the first to share one!
+            {activeFilter === 'myvibes' 
+              ? "You haven't posted any vibes yet. Share your style with the world!"
+              : "There are no vibes posted in this category yet. Be the first to share one!"}
           </p>
           <button
             onClick={() => setIsCreateOpen(true)}
@@ -1276,7 +1368,7 @@ export default function VibesScreen() {
   return (
     <div ref={containerRef} className="relative w-full h-full min-h-[500px] bg-black overflow-hidden flex flex-col">
       {/* Filter tabs — top overlay */}
-      <div className="absolute top-7 left-0 right-16 z-30">
+      <div className="absolute top-7 left-0 right-[100px] z-30">
         <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar pb-1">
           {FILTERS.map(f => (
             <button
@@ -1294,14 +1386,35 @@ export default function VibesScreen() {
         </div>
       </div>
 
-      {/* Create Vibe Floating Button on Top Right (prevents overlapping bottom music icons) */}
-      <motion.button
-        whileTap={{ scale: 0.88 }}
-        onClick={() => setIsCreateOpen(true)}
-        className="absolute top-7 right-4 z-30 w-10 h-10 rounded-full bg-gradient-to-br from-[#B026FF] to-[#00F0FF] flex items-center justify-center shadow-lg shadow-[#B026FF]/40 border border-white/20"
-      >
-        <Plus className="w-5 h-5 text-white" />
-      </motion.button>
+      {/* Header action buttons on Top Right */}
+      <div className="absolute top-7 right-4 z-30 flex items-center gap-2">
+        {/* Refresh Vibe Feed Button */}
+        {activeFilter !== 'myvibes' && (
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={handleRefresh}
+            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center shadow-lg border border-white/10 text-white/80 hover:text-white"
+            title="Refresh Vibes"
+          >
+            <motion.div
+              animate={isRefreshing ? { rotate: 360 } : {}}
+              transition={{ repeat: isRefreshing ? Infinity : 0, duration: 1, ease: 'linear' }}
+            >
+              <RefreshCw className="w-4 h-4" />
+            </motion.div>
+          </motion.button>
+        )}
+
+        {/* Create Vibe Floating Button */}
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          onClick={() => setIsCreateOpen(true)}
+          className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B026FF] to-[#00F0FF] flex items-center justify-center shadow-lg shadow-[#B026FF]/40 border border-white/20"
+          title="Create a Vibe"
+        >
+          <Plus className="w-5 h-5 text-white" />
+        </motion.button>
+      </div>
 
       {/* Vibe Cards — full-screen snap scroll */}
       <div 
