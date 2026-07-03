@@ -4,6 +4,7 @@ import { ChevronLeft, Share2, Home, RotateCcw, Zap, Heart, Bot, Users, Trophy } 
 import { motion, AnimatePresence } from 'motion/react';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { saveGameScore } from '../lib/gamesStorage';
+import { GameInviteModal } from '../components/GameInviteModal';
 
 type Player = 'P1' | 'P2' | null; // P1 = ⚡, P2 = 💜
 type GameState = 'MENU' | 'PLAYING' | 'GAME_OVER';
@@ -41,6 +42,7 @@ export default function TicTacToeScreen() {
   const [bestScore, setBestScore] = useState(() => {
     return parseInt(localStorage.getItem('tictactoe_best') || '0', 10);
   });
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   const resetBoard = useCallback(() => {
     setBoard(Array(9).fill(null));
@@ -282,7 +284,10 @@ export default function TicTacToeScreen() {
           </h1>
         </div>
         
-        <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition">
+        <button 
+          onClick={() => setIsInviteOpen(true)}
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition"
+        >
           <Share2 className="w-5 h-5" />
         </button>
       </div>
@@ -312,6 +317,21 @@ export default function TicTacToeScreen() {
                 </button>
               </div>
             </div>
+
+            {mode === '2P' && (
+              <div className="mb-6 p-3 bg-white/[0.02] border border-white/10 rounded-2xl flex items-center justify-between">
+                <div className="min-w-0 pr-2">
+                  <p className="text-xs font-bold text-white">Play with a friend?</p>
+                  <p className="text-[10px] text-white/50">Invite them to play together!</p>
+                </div>
+                <button 
+                  onClick={() => setIsInviteOpen(true)}
+                  className="px-3 py-1.5 bg-gradient-to-r from-[#00F0FF]/20 to-[#B026FF]/20 border border-[#00F0FF]/30 hover:border-[#00F0FF]/50 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shrink-0 active:scale-95 transition"
+                >
+                  <Users className="w-3.5 h-3.5" /> Invite
+                </button>
+              </div>
+            )}
 
             {/* AI Difficulty */}
             {mode === 'AI' && (
@@ -520,6 +540,14 @@ export default function TicTacToeScreen() {
              </motion.div>
           )}
         </AnimatePresence>
+
+        <GameInviteModal 
+          isOpen={isInviteOpen} 
+          onClose={() => setIsInviteOpen(false)} 
+          gameId="tic_tac_toe" 
+          gameLabel="Tic Tac Toe" 
+          gameEmoji="⭕" 
+        />
       </div>
     </div>
   );

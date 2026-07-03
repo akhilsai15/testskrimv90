@@ -4,6 +4,7 @@ import { ChevronLeft, Share2, Home, RotateCcw, Users, Trophy, Play } from 'lucid
 import { motion, AnimatePresence } from 'motion/react';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { saveGameScore } from '../lib/gamesStorage';
+import { GameInviteModal } from '../components/GameInviteModal';
 
 const SNAKES = [
   { start: 16, end: 6 },
@@ -88,6 +89,7 @@ export default function SnakesLaddersScreen() {
   const [isMoving, setIsMoving] = useState(false);
   const [emojiEffect, setEmojiEffect] = useState<string | null>(null);
   const [winner, setWinner] = useState<Player | null>(null);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   // Persistence
   useEffect(() => {
@@ -281,7 +283,10 @@ export default function SnakesLaddersScreen() {
           SNAKES & LADDERS
         </h1>
         
-        <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition">
+        <button 
+          onClick={() => setIsInviteOpen(true)}
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition"
+        >
           <Share2 className="w-5 h-5" />
         </button>
       </div>
@@ -394,6 +399,21 @@ export default function SnakesLaddersScreen() {
                 ))}
               </AnimatePresence>
             </div>
+
+            {!isAiMode && (
+              <div className="mb-6 p-3 bg-white/[0.02] border border-white/10 rounded-2xl flex items-center justify-between text-left">
+                <div className="min-w-0 pr-2">
+                  <p className="text-xs font-bold text-white">Play with an online friend?</p>
+                  <p className="text-[10px] text-white/50">Send them an invite link or chat invite!</p>
+                </div>
+                <button 
+                  onClick={() => setIsInviteOpen(true)}
+                  className="px-3 py-1.5 bg-gradient-to-r from-[#FFD700] to-[#FF9933] text-black hover:brightness-110 rounded-xl text-xs font-black flex items-center gap-1.5 shrink-0 active:scale-95 transition"
+                >
+                  <Users className="w-3.5 h-3.5" /> Invite
+                </button>
+              </div>
+            )}
 
             <button 
               onClick={startGame}
@@ -703,6 +723,13 @@ export default function SnakesLaddersScreen() {
           )}
         </AnimatePresence>
 
+        <GameInviteModal 
+          isOpen={isInviteOpen} 
+          onClose={() => setIsInviteOpen(false)} 
+          gameId="snakes_ladders" 
+          gameLabel="Snakes & Ladders" 
+          gameEmoji="🪜" 
+        />
       </div>
     </div>
   );

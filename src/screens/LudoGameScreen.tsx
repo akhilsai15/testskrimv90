@@ -4,6 +4,7 @@ import { useCurrentUser } from '../hooks/useCurrentUser';
 import { saveGameScore } from '../lib/gamesStorage';
 import { ChevronLeft, Share2, ZoomIn, RotateCcw, Users, Play, Bot, User, MessageSquare, Undo, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { GameInviteModal } from '../components/GameInviteModal';
 
 type Color = 'RED' | 'GREEN' | 'YELLOW' | 'BLUE';
 type TokenStatus = 'HOME' | 'BOARD' | 'STRETCH' | 'FINISHED';
@@ -130,6 +131,7 @@ export default function LudoGameScreen() {
   const [isMoving, setIsMoving] = useState(false);
   const [winner, setWinner] = useState<Player | null>(null);
   const [emojiEffect, setEmojiEffect] = useState<{type: string, msg: string} | null>(null);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   const [numPlayers, setNumPlayers] = useState(2);
   const [setupPlayers, setSetupPlayers] = useState([
@@ -449,7 +451,10 @@ export default function LudoGameScreen() {
           <span className="text-[#F5E6C8]/70 text-[10px] font-bold tracking-[0.3em] font-sans">CLASSIC · FUN · TOGETHER</span>
           <span className="text-[#B8860B] text-xs font-bold mt-0.5 transform -translate-y-1">लूडो</span>
         </div>
-        <button className="w-10 h-10 flex items-center justify-center rounded-sm bg-black/30 border border-[#B8860B]/50 text-[#F5E6C8] hover:bg-black/50 transition">
+        <button 
+          onClick={() => setIsInviteOpen(true)}
+          className="w-10 h-10 flex items-center justify-center rounded-sm bg-black/30 border border-[#B8860B]/50 text-[#F5E6C8] hover:bg-black/50 transition"
+        >
           <Share2 className="w-5 h-5" />
         </button>
       </div>
@@ -535,6 +540,19 @@ export default function LudoGameScreen() {
                     </div>
                   )
                 })}
+              </div>
+
+              <div className="mb-4 p-2.5 bg-[#8B4513]/5 border-2 border-dashed border-[#8B4513]/20 rounded-sm flex items-center justify-between">
+                <div className="min-w-0 pr-1 text-left">
+                  <p className="text-xs font-black text-[#8B4513] uppercase tracking-wide">Play with online friends?</p>
+                  <p className="text-[10px] text-[#8B4513]/60 font-sans">Send an invite link or invite via chat.</p>
+                </div>
+                <button 
+                  onClick={() => setIsInviteOpen(true)}
+                  className="px-3 py-1.5 bg-[#8B4513] text-[#F5E6C8] border border-[#D2B48C] font-black text-xs flex items-center gap-1.5 shrink-0 active:scale-95 transition"
+                >
+                  <Users className="w-3 h-3" /> Invite
+                </button>
               </div>
 
               <button 
@@ -861,6 +879,14 @@ export default function LudoGameScreen() {
         )}
 
       </div>
+
+      <GameInviteModal 
+        isOpen={isInviteOpen} 
+        onClose={() => setIsInviteOpen(false)} 
+        gameId="ludo" 
+        gameLabel="Ludo" 
+        gameEmoji="🎲" 
+      />
     </div>
   );
 }
