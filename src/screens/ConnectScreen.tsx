@@ -1425,8 +1425,6 @@ function StoryViewerOverlay({ story, onClose, onDelete, onReply, onReact }: Stor
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          clearInterval(interval);
-          onClose();
           return 100;
         }
         return prev + 1;
@@ -1434,7 +1432,14 @@ function StoryViewerOverlay({ story, onClose, onDelete, onReply, onReact }: Stor
     }, 50); // 100 * 50ms = 5000ms (5 seconds)
 
     return () => clearInterval(interval);
-  }, [isPaused, isPlaying, onClose]);
+  }, [isPaused, isPlaying]);
+
+  // Handle auto-close when progress reaches 100
+  useEffect(() => {
+    if (progress >= 100) {
+      onClose();
+    }
+  }, [progress, onClose]);
 
   return (
     <div 
