@@ -279,21 +279,26 @@ export function ChatInput({ currentMood, onSetMood, onSendMessage, onSendVoice, 
           <div className="flex">
             <button 
               onClick={() => setShowMoodMenu(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 transition-colors backdrop-blur-md"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all duration-300 backdrop-blur-md"
               style={{
-                borderLeftColor: currentMoodObj ? currentMoodObj.bubbleGradient[0] : undefined,
-                borderLeftWidth: currentMoodObj ? 3 : 1
+                background: currentMoodObj 
+                  ? `linear-gradient(135deg, ${currentMoodObj.bubbleGradient[0]}, ${currentMoodObj.bubbleGradient[1]})` 
+                  : 'rgba(255, 255, 255, 0.08)',
+                boxShadow: currentMoodObj 
+                  ? `0 4px 15px ${currentMoodObj.glow}, inset 0 1px 1px rgba(255, 255, 255, 0.2)` 
+                  : 'none',
+                border: currentMoodObj ? 'none' : '1px solid rgba(255, 255, 255, 0.1)'
               }}
             >
               {currentMoodObj ? (
                 <>
-                  <span className="text-[16px] leading-none drop-shadow-sm">{currentMoodObj.emoji}</span>
-                  <span className="text-[13px] font-medium text-white/90">{currentMoodObj.label} ▾</span>
+                  <span className="text-[15px] leading-none drop-shadow-md animate-pulse">{currentMoodObj.emoji}</span>
+                  <span className="text-[11px] font-black text-white drop-shadow-md uppercase tracking-wider">{currentMoodObj.label} ▾</span>
                 </>
               ) : (
                 <>
-                  <span className="text-[16px] leading-none opacity-50">😶</span>
-                  <span className="text-[13px] font-medium text-white/50">Mood ▾</span>
+                  <span className="text-[15px] leading-none opacity-50">😶</span>
+                  <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider">Mood ▾</span>
                 </>
               )}
             </button>
