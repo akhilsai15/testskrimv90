@@ -12,8 +12,12 @@ import {
   X,
   Lock,
   Check,
+  UserPlus,
+  Search,
 } from "lucide-react";
 import { useCallStore } from "../store/callStore";
+import { mockUsers } from "../lib/mock/mockData";
+import { MOCK_CHATS } from "../lib/mock/mockChatDirectory";
 
 const formatTime = (seconds: number) => {
   const h = Math.floor(seconds / 3600);
@@ -78,6 +82,11 @@ export default function VideoCallScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [showPinInput, setShowPinInput] = useState(false);
   const [pinText, setPinText] = useState("");
+
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"connect" | "followers" | "following">("connect");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [addedToast, setAddedToast] = useState<string | null>(null);
 
   const [emojis, setEmojis] = useState<
     { id: number; emoji: string; x: number; y: number }[]
@@ -707,6 +716,17 @@ export default function VideoCallScreen() {
             </div>
 
             <button
+              onClick={() => {
+                setShowAddUserModal(true);
+                resetControlsTimeout();
+              }}
+              className="p-3 rounded-full text-white hover:bg-white/10 transition-colors"
+              title="Add user to call"
+            >
+              <UserPlus className="w-6 h-6" />
+            </button>
+
+            <button
               onClick={store.endCall}
               className="p-4 rounded-full bg-red-500 hover:bg-red-600 shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all hover:scale-105 ml-2"
             >
@@ -774,6 +794,261 @@ export default function VideoCallScreen() {
                 </ul>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Added Participants Overlay */}
+      {store.state === "active" && store.addedContacts.length > 0 && (
+        <div className="absolute top-24 right-6 z-40 flex flex-col gap-2">
+          <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest text-right mr-1">In Call</p>
+          <div className="flex flex-col gap-2 items-end">
+            {store.addedContacts.map((contact) => (
+              <motion.div
+                initial={{ opacity: 0, x: 20, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                key={contact.id}
+                className="flex items-center gap-2.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg"
+              >
+                <div className="relative">
+                  <img src={contact.avatar || ""} className="w-8 h-8 rounded-full border border-white/20 object-cover" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border border-black" />
+                </div>
+                <span className="text-white text-xs font-semibold pr-1">{contact.name}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      <AnimatePresence>
+        {showAddUserModal && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" onClick={() => setShowAddUserModal(false)}>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-[#0D0D19]/95 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-[0_0_50px_rgba(176,38,255,0.15)] max-h-[80vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-5 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
+                <div>
+                  <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-[#B026FF]" /> Add to Call
+                  </h3>
+                  <p className="text-xs text-white/50 mt-0.5">Select a user to add to this SkrimCall</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAddUserModal(false);
+                    setSearchQuery("");
+                  }}
+                  className="text-white/60 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="p-4 border-b border-white/5 bg-white/[0.01]">
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search name or username..."
+                    className="w-full bg-white/5 hover:bg-white/10 focus:bg-white/10 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-white placeholder-white/40 text-sm outline-none transition-all focus:border-[#B026FF]/50"
+                  />
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex border-b border-white/5 text-sm font-semibold bg-white/[0.01]">
+                <button
+                  onClick={() => setActiveTab("connect")}
+                  className={`flex-1 py-3 text-center transition-colors border-b-2 ${
+                    activeTab === "connect"
+                      ? "border-[#B026FF] text-white"
+                      : "border-transparent text-white/50 hover:text-white/80"
+                  }`}
+                >
+                  Connect
+                </button>
+                <button
+                  onClick={() => setActiveTab("followers")}
+                  className={`flex-1 py-3 text-center transition-colors border-b-2 ${
+                    activeTab === "followers"
+                      ? "border-[#B026FF] text-white"
+                      : "border-transparent text-white/50 hover:text-white/80"
+                  }`}
+                >
+                  Followers
+                </button>
+                <button
+                  onClick={() => setActiveTab("following")}
+                  className={`flex-1 py-3 text-center transition-colors border-b-2 ${
+                    activeTab === "following"
+                      ? "border-[#B026FF] text-white"
+                      : "border-transparent text-white/50 hover:text-white/80"
+                  }`}
+                >
+                  Following
+                </button>
+              </div>
+
+              {/* User List */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-[250px] max-h-[400px]">
+                {(() => {
+                  let list: any[] = [];
+                  if (activeTab === "connect") {
+                    list = MOCK_CHATS.filter(c => !c.isGroup).map(c => ({
+                      id: c.id,
+                      name: c.name,
+                      username: c.username || "",
+                      avatar: c.avatar,
+                    }));
+                  } else if (activeTab === "followers") {
+                    let followers: string[] = [];
+                    try {
+                      const data = localStorage.getItem("skrimchat_followers");
+                      if (data) {
+                        const parsed = JSON.parse(data);
+                        if (Array.isArray(parsed)) followers = parsed;
+                      }
+                    } catch (e) {}
+                    if (followers.length === 0) {
+                      followers = ["sunita_not_astronaut", "chikoo_bhai_official", "munni_badnaam_nahi", "dolly_ka_dhaba"];
+                    }
+                    list = followers.map(uname => {
+                      const mu = mockUsers.find(u => u.username === uname);
+                      return mu ? {
+                        id: mu.id,
+                        name: mu.displayName,
+                        username: mu.username,
+                        avatar: mu.avatar,
+                      } : {
+                        id: uname,
+                        name: uname,
+                        username: uname,
+                        avatar: `https://i.pravatar.cc/150?u=${uname}`,
+                      };
+                    });
+                  } else if (activeTab === "following") {
+                    let following: string[] = [];
+                    try {
+                      const data = localStorage.getItem("skrimchat_following");
+                      if (data) {
+                        const parsed = JSON.parse(data);
+                        if (Array.isArray(parsed)) following = parsed;
+                      }
+                    } catch (e) {}
+                    if (following.length === 0) {
+                      following = ["bappu_bhai", "bablu_ka_garage", "golu_fitness_goals", "pappu_pass_hogaya"];
+                    }
+                    list = following.map(uname => {
+                      const mu = mockUsers.find(u => u.username === uname);
+                      return mu ? {
+                        id: mu.id,
+                        name: mu.displayName,
+                        username: mu.username,
+                        avatar: mu.avatar,
+                      } : {
+                        id: uname,
+                        name: uname,
+                        username: uname,
+                        avatar: `https://i.pravatar.cc/150?u=${uname}`,
+                      };
+                    });
+                  }
+
+                  // Filter by Search Query
+                  if (searchQuery.trim()) {
+                    const q = searchQuery.toLowerCase();
+                    list = list.filter(u => 
+                      u.name.toLowerCase().includes(q) || 
+                      u.username.toLowerCase().includes(q)
+                    );
+                  }
+
+                  if (list.length === 0) {
+                    return (
+                      <div className="h-full flex flex-col items-center justify-center text-center py-8">
+                        <p className="text-white/40 text-sm">No users found</p>
+                      </div>
+                    );
+                  }
+
+                  return list.map((user) => {
+                    const isAlreadyAdded = store.addedContacts.some(c => c.id === user.id || c.name === user.name);
+                    const isMainParticipant = store.contact?.id === user.id || store.contact?.name === user.name;
+                    
+                    return (
+                      <button
+                        key={user.id}
+                        disabled={isAlreadyAdded || isMainParticipant}
+                        onClick={() => {
+                          store.addContact({
+                            id: user.id,
+                            name: user.name,
+                            avatar: user.avatar,
+                          });
+                          setAddedToast(`${user.name} added to call ⚡`);
+                          setTimeout(() => setAddedToast(null), 3000);
+                        }}
+                        className={`w-full flex items-center justify-between p-3 rounded-2xl transition-all border text-left ${
+                          isAlreadyAdded || isMainParticipant
+                            ? "bg-white/[0.01] border-transparent opacity-50 cursor-not-allowed"
+                            : "bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10 active:scale-[0.98]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <img
+                            src={user.avatar}
+                            alt={user.name}
+                            className="w-10 h-10 rounded-full object-cover border border-white/10"
+                          />
+                          <div className="min-w-0">
+                            <div className="text-white font-semibold text-sm truncate">{user.name}</div>
+                            <div className="text-white/40 text-xs truncate">@{user.username}</div>
+                          </div>
+                        </div>
+
+                        {isMainParticipant ? (
+                          <span className="text-xs text-[#B026FF] font-medium bg-[#B026FF]/10 px-2.5 py-1 rounded-full border border-[#B026FF]/20">
+                            Host/Active
+                          </span>
+                        ) : isAlreadyAdded ? (
+                          <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
+                            <Check size={14} />
+                          </div>
+                        ) : (
+                          <span className="text-xs text-white/60 font-semibold bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-full transition-all">
+                            Add
+                          </span>
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Alert */}
+      <AnimatePresence>
+        {addedToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 20, x: "-50%" }}
+            className="fixed bottom-32 left-1/2 z-[10050] bg-zinc-900 border border-[#B026FF]/30 text-white text-sm font-semibold px-5 py-3 rounded-full shadow-[0_0_20px_rgba(176,38,255,0.25)] flex items-center gap-2"
+          >
+            <span>{addedToast}</span>
           </motion.div>
         )}
       </AnimatePresence>
