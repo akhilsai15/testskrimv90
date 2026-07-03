@@ -432,7 +432,7 @@ function MainAppLayout() {
   return (
     <div className="w-full h-full overflow-hidden bg-black flex flex-col">
       <MobileStatsDashboard />
-      <div className="w-full h-full relative overflow-hidden bg-skrim-bg flex flex-col">
+      <div className="flex-1 w-full min-h-0 relative overflow-hidden bg-skrim-bg flex flex-col">
         <AppContent />
       </div>
       <DashboardSheets />

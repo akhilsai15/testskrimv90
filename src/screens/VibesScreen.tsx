@@ -113,29 +113,40 @@ function VibeCard({
 }) {
   const [liked, setLiked]   = useState(() => {
     try {
+      if (!vibe?.id) return false;
       const l: string[] = JSON.parse(localStorage.getItem('skrimchat_vibe_liked') || '[]');
-      return l.includes(vibe.id);
+      return Array.isArray(l) && l.includes(vibe.id);
     } catch { return false; }
   });
   const [saved, setSaved]   = useState(() => {
     try {
+      if (!vibe?.id) return false;
       const s: string[] = JSON.parse(localStorage.getItem('skrimchat_vibe_saved') || '[]');
-      return s.includes(vibe.id);
+      return Array.isArray(s) && s.includes(vibe.id);
     } catch { return false; }
   });
   const [pulses, setPulses] = useState(() => {
     try {
+      if (!vibe?.id) return 0;
       const counts: Record<string,number> = JSON.parse(localStorage.getItem('skrimchat_vibe_counts') || '{}');
-      return counts[vibe.id] ?? vibe.pulseCount;
-    } catch { return vibe.pulseCount; }
+      return counts[vibe.id] ?? vibe.pulseCount ?? 0;
+    } catch { return vibe?.pulseCount ?? 0; }
   });
-  const [commentCount, setCommentCount] = useState(vibe.comments);
+  const [commentCount, setCommentCount] = useState(() => vibe?.comments ?? 0);
   const [burst, setBurst]   = useState<{ x: number; y: number } | null>(null);
   const [showComments, setShowComments] = useState(false);
   const lastTap = useRef(0);
 
   const dragY = useMotionValue(0);
   const imgScale = useTransform(dragY, [-200, 0, 200], [1.05, 1, 1.05]);
+
+  if (!vibe) {
+    return (
+      <div className="w-full h-full bg-black flex items-center justify-center text-white/50 text-xs">
+        No Vibe Content Available
+      </div>
+    );
+  }
 
   const handleTap = (e: React.MouseEvent) => {
     const now = Date.now();
@@ -692,7 +703,10 @@ export default function VibesScreen() {
   // merged into the feed below — keeping it separate from `vibes` (which gets
   // wiped/refetched on every filter change) means your own posts survive that.
   const [userVibes, setUserVibes] = useState<VibePost[]>(() => {
-    try { return JSON.parse(localStorage.getItem('skrimchat_user_vibes') || '[]'); } catch { return []; }
+    try {
+      const parsed = JSON.parse(localStorage.getItem('skrimchat_user_vibes') || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
   });
 
   const handlePosted = useCallback((vibe: VibePost) => {
@@ -750,6 +764,32 @@ export default function VibesScreen() {
     return () => window.removeEventListener('keydown', handler);
   }, [goNext, goPrev]);
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const scrollPos = container.scrollTop;
+    const height = container.clientHeight || 1;
+    const index = Math.round(scrollPos / height);
+    if (index !== currentIdx && index >= 0 && index < vibes.length) {
+      setCurrentIdx(index);
+    }
+  };
+
+  useEffect(() => {
+    if (containerRef.current) {
+      const container = containerRef.current.querySelector('.snap-scroll-container');
+      if (container) {
+        const height = container.clientHeight;
+        const targetScrollTop = currentIdx * height;
+        if (Math.abs(container.scrollTop - targetScrollTop) > 10) {
+          container.scrollTo({
+            top: targetScrollTop,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }
+  }, [currentIdx]);
+
   const FILTERS = [
     { id: 'foryou',   label: '⚡ For You' },
     { id: 'following',label: '💜 Following' },
@@ -775,8 +815,49 @@ export default function VibesScreen() {
     );
   }
 
+  if (vibes.length === 0) {
+    return (
+      <div className="w-full h-full bg-black flex flex-col items-center justify-center text-center p-6 relative">
+        <div className="absolute top-0 left-0 right-0 z-30 pt-2">
+          <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar pb-1">
+            {FILTERS.map(f => (
+              <button
+                key={f.id}
+                onClick={() => { setActiveFilter(f.id); setVibes([]); setLoading(true); }}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
+                  activeFilter === f.id
+                    ? 'bg-[#B026FF] text-white shadow-lg shadow-[#B026FF]/40'
+                    : 'bg-black/40 backdrop-blur text-white/60 border border-white/10'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Play className="w-12 h-12 text-[#B026FF] mb-4 opacity-40 animate-pulse" />
+        <h3 className="text-white font-bold text-lg mb-2">No Vibes Found</h3>
+        <p className="text-white/40 text-sm max-w-xs mb-6">
+          There are no vibes posted in this category yet. Be the first to share one!
+        </p>
+        <button
+          onClick={() => setIsCreateOpen(true)}
+          className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#B026FF] to-[#00F0FF] text-white font-bold text-sm shadow-lg shadow-[#B026FF]/30 active:scale-95 transition-transform"
+        >
+          Create a Vibe
+        </button>
+        <VibeCreateSheet
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          currentUser={currentUser}
+          onPost={handlePosted}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div ref={containerRef} className="relative w-full h-full bg-black overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-full min-h-[500px] bg-black overflow-hidden flex flex-col">
       {/* Filter tabs — top overlay */}
       <div className="absolute top-0 left-0 right-0 z-30 pt-2">
         <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar pb-1">
@@ -797,28 +878,25 @@ export default function VibesScreen() {
       </div>
 
       {/* Vibe Cards — full-screen snap scroll */}
-      <div className="w-full h-full overflow-y-auto no-scrollbar snap-y snap-mandatory">
-        <AnimatePresence mode="popLayout">
-          {vibes.map((vibe, i) => (
-            <motion.div
-              key={vibe.id}
-              className="w-full h-full snap-start snap-always relative overflow-hidden"
-              initial={{ opacity: i === currentIdx ? 1 : 0.85 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onViewportEnter={() => setCurrentIdx(i)}
-            >
-              <VibeCard
-                vibe={vibe}
-                isActive={i === currentIdx}
-                muted={muted}
-                onToggleMute={() => setMuted(m => !m)}
-                onNext={goNext}
-                onPrev={goPrev}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      <div 
+        onScroll={handleScroll}
+        className="w-full h-full overflow-y-auto no-scrollbar snap-y snap-mandatory snap-scroll-container scroll-smooth"
+      >
+        {vibes.map((vibe, i) => (
+          <div
+            key={vibe.id}
+            className="w-full h-full snap-start snap-always relative overflow-hidden shrink-0"
+          >
+            <VibeCard
+              vibe={vibe}
+              isActive={i === currentIdx}
+              muted={muted}
+              onToggleMute={() => setMuted(m => !m)}
+              onNext={goNext}
+              onPrev={goPrev}
+            />
+          </div>
+        ))}
 
         {/* Loading more spinner */}
         {loadingMore && (
