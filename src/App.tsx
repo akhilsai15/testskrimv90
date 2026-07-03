@@ -132,13 +132,10 @@ import KanchaGameScreen from "./screens/KanchaGameScreen";
 import GilliDandaGameScreen from "./screens/GilliDandaGameScreen";
 import LagoriGameScreen from "./screens/LagoriGameScreen";
 import GamesLeaderboardScreen from "./screens/GamesLeaderboardScreen";
-import ChessGameScreen from "./screens/ChessGameScreen";
 import MafiaGameScreen from "./screens/MafiaGameScreen";
 import WordChainScreen from "./screens/WordChainScreen";
 import BluffQuizScreen from "./screens/BluffQuizScreen";
-import UnoGameScreen from "./screens/UnoGameScreen";
 import BubbleShooterScreen from "./screens/BubbleShooterScreen";
-import BounceBallScreen from "./screens/BounceBallScreen";
 
 import AudioCallScreen from "./components/AudioCallScreen";
 import VideoCallScreen from "./components/VideoCallScreen";
@@ -213,13 +210,10 @@ function AppContent() {
         <Route path="/games/gilli" element={<GilliDandaGameScreen />} />
         <Route path="/games/lagori" element={<LagoriGameScreen />} />
         <Route path="/games/leaderboard" element={<GamesLeaderboardScreen />} />
-        <Route path="/games/chess" element={<ChessGameScreen />} />
         <Route path="/games/mafia" element={<MafiaGameScreen />} />
         <Route path="/games/wordchain" element={<WordChainScreen />} />
         <Route path="/games/bluffquiz" element={<BluffQuizScreen />} />
-        <Route path="/games/uno" element={<UnoGameScreen />} />
         <Route path="/games/bubbleshooter" element={<BubbleShooterScreen />} />
-        <Route path="/games/bounceball" element={<BounceBallScreen />} />
         <Route path="/vibes" element={<VibesScreen />} />
         <Route path="/connect" element={<ConnectScreen />} />
         <Route path="/veil" element={<VeilScreen />} />

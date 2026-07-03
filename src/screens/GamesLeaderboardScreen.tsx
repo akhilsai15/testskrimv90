@@ -19,13 +19,10 @@ const GAMES_INFO: Record<string, { title: string, icon: string }> = {
     "truthdare": { title: "Truth or Dare", icon: "🔥" },
     "quiz": { title: "Quiz Battle", icon: "🧠" },
     "emoji": { title: "Emoji Guess", icon: "😂" },
-    "chess": { title: "Chess", icon: "♟️" },
     "mafia": { title: "Mafia", icon: "🕵️" },
     "wordchain": { title: "Word Chain", icon: "🔤" },
     "bluffquiz": { title: "Bluff Quiz", icon: "🃏" },
-    "uno": { title: "UNO", icon: "🎴" },
-    "bubbleshooter": { title: "Bubble Shooter", icon: "🫧" },
-    "bounceball": { title: "Bounce Ball", icon: "⚽" }
+    "bubbleshooter": { title: "Bubble Shooter", icon: "🫧" }
 };
 
 type TimeFilter = 'today' | 'week' | 'all';

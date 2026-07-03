@@ -17,13 +17,10 @@ const GAME_ART: Record<string, { emoji: string; bg: string }> = {
   truthdare:    { emoji: "🔥", bg: "from-pink-600 via-fuchsia-500 to-purple-400" },
   quiz:         { emoji: "🧠", bg: "from-purple-600 via-violet-500 to-indigo-400" },
   emoji:        { emoji: "😂", bg: "from-indigo-600 via-blue-500 to-violet-400" },
-  chess:        { emoji: "♟️", bg: "from-slate-700 via-gray-600 to-zinc-500" },
   mafia:        { emoji: "🕵️", bg: "from-red-900 via-red-700 to-rose-600" },
   wordchain:    { emoji: "🔤", bg: "from-teal-600 via-cyan-500 to-emerald-400" },
   bluffquiz:    { emoji: "🃏", bg: "from-orange-700 via-amber-600 to-yellow-500" },
-  uno:          { emoji: "🎴", bg: "from-red-600 via-rose-500 to-orange-400" },
   bubbleshooter:{ emoji: "🫧", bg: "from-cyan-600 via-sky-500 to-blue-400" },
-  bounceball:   { emoji: "⚽", bg: "from-yellow-600 via-amber-500 to-orange-400" },
 };
 
 const CATEGORIES = [
@@ -46,13 +43,10 @@ const GAMES = [
   { id: "truthdare",     title: "Truth or Dare",    category: "social",   rating: "4.8", mode: "Pass & Play (Group)", score: "0",       hot: true  },
   { id: "quiz",          title: "Quiz Battle",      category: "social",   rating: "4.9", mode: "Solo / Pass & Play", score: "Q: 7/10"             },
   { id: "emoji",         title: "Emoji Guess",      category: "social",   rating: "4.7", mode: "Solo Run",  score: "18",      new: true  },
-  { id: "chess",         title: "Chess",            category: "classic",  rating: "4.9", mode: "vs Bots / Pass & Play", score: "0",       hot: true  },
   { id: "mafia",         title: "Mafia",            category: "social",   rating: "4.8", mode: "Pass & Play (Group)", score: "0",       new: true  },
   { id: "wordchain",     title: "Word Chain",       category: "social",   rating: "4.6", mode: "vs Bots / Pass & Play", score: "0",       new: true  },
   { id: "bluffquiz",     title: "Bluff Quiz",       category: "social",   rating: "4.7", mode: "vs Bots / Pass & Play", score: "0",       new: true  },
-  { id: "uno",           title: "UNO",              category: "classic",  rating: "4.9", mode: "vs Bots / Pass & Play", score: "0",       hot: true  },
   { id: "bubbleshooter", title: "Bubble Shooter",   category: "classic",  rating: "4.8", mode: "Solo Run", score: "0",       hot: true  },
-  { id: "bounceball",    title: "Bounce Ball",      category: "classic",  rating: "4.7", mode: "Solo Run", score: "0",       new: true  },
 ];
 
 const RECENT_GAMES = [

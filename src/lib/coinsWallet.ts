@@ -114,13 +114,10 @@ const GAME_SCORE_CEILING: Record<string, number> = {
   truthdare: 200,
   quiz: 10,
   emoji: 50,
-  chess: 2000,
   mafia: 1000,
   wordchain: 100,
   bluffquiz: 100,
-  uno: 1000,
   bubbleshooter: 5000,
-  bounceball: 5000,
 };
 
 const MIN_COINS_PER_GAME = 500; // floor, so even a rough first attempt earns something
