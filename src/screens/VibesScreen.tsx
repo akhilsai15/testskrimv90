@@ -103,6 +103,8 @@ function VibeCard({
   onToggleMute,
   onNext,
   onPrev,
+  total,
+  current,
 }: {
   vibe: VibePost;
   isActive: boolean;
@@ -110,6 +112,8 @@ function VibeCard({
   onToggleMute: () => void;
   onNext: () => void;
   onPrev: () => void;
+  total: number;
+  current: number;
 }) {
   const [liked, setLiked]   = useState(() => {
     try {
@@ -225,10 +229,10 @@ function VibeCard({
       />
 
       {/* ── Top bar ─────────────────────────────── */}
-      <div className="absolute top-0 left-0 right-0 z-20 pt-safe">
+      <div className="absolute top-2 left-0 right-0 z-20 pt-safe">
         {/* Progress bars */}
-        <div className="pt-3 pb-2">
-          <ProgressBars total={10} current={0} />
+        <div className="pb-2">
+          <ProgressBars total={total} current={current} />
         </div>
 
         {/* Mute + More */}
@@ -800,25 +804,9 @@ export default function VibesScreen() {
 
   if (loading) {
     return (
-      <div className="w-full h-full bg-black flex items-center justify-center">
-        <motion.div
-          animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
-          transition={{ repeat: Infinity, duration: 1.2 }}
-          className="flex flex-col items-center gap-4"
-        >
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#B026FF] to-[#00F0FF] flex items-center justify-center shadow-2xl shadow-[#B026FF]/40">
-            <Play className="w-8 h-8 text-white fill-white ml-1" />
-          </div>
-          <span className="text-white/60 font-bold tracking-widest text-xs uppercase">Loading Vibes…</span>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (vibes.length === 0) {
-    return (
-      <div className="w-full h-full bg-black flex flex-col items-center justify-center text-center p-6 relative">
-        <div className="absolute top-0 left-0 right-0 z-30 pt-2">
+      <div ref={containerRef} className="relative w-full h-full min-h-[500px] bg-black overflow-hidden flex flex-col">
+        {/* Filter tabs — top overlay */}
+        <div className="absolute top-7 left-0 right-0 z-30">
           <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar pb-1">
             {FILTERS.map(f => (
               <button
@@ -835,17 +823,58 @@ export default function VibesScreen() {
             ))}
           </div>
         </div>
-        <Play className="w-12 h-12 text-[#B026FF] mb-4 opacity-40 animate-pulse" />
-        <h3 className="text-white font-bold text-lg mb-2">No Vibes Found</h3>
-        <p className="text-white/40 text-sm max-w-xs mb-6">
-          There are no vibes posted in this category yet. Be the first to share one!
-        </p>
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#B026FF] to-[#00F0FF] text-white font-bold text-sm shadow-lg shadow-[#B026FF]/30 active:scale-95 transition-transform"
-        >
-          Create a Vibe
-        </button>
+
+        <div className="w-full h-full bg-black flex items-center justify-center pt-16">
+          <motion.div
+            animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
+            transition={{ repeat: Infinity, duration: 1.2 }}
+            className="flex flex-col items-center gap-4"
+          >
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#B026FF] to-[#00F0FF] flex items-center justify-center shadow-2xl shadow-[#B026FF]/40">
+              <Play className="w-8 h-8 text-white fill-white ml-1" />
+            </div>
+            <span className="text-white/60 font-bold tracking-widest text-xs uppercase">Loading Vibes…</span>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  if (vibes.length === 0) {
+    return (
+      <div ref={containerRef} className="relative w-full h-full min-h-[500px] bg-black overflow-hidden flex flex-col">
+        {/* Filter tabs — top overlay */}
+        <div className="absolute top-7 left-0 right-0 z-30">
+          <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar pb-1">
+            {FILTERS.map(f => (
+              <button
+                key={f.id}
+                onClick={() => { setActiveFilter(f.id); setVibes([]); setLoading(true); }}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
+                  activeFilter === f.id
+                    ? 'bg-[#B026FF] text-white shadow-lg shadow-[#B026FF]/40'
+                    : 'bg-black/40 backdrop-blur text-white/60 border border-white/10'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="w-full h-full bg-black flex flex-col items-center justify-center text-center p-6 relative pt-16">
+          <Play className="w-12 h-12 text-[#B026FF] mb-4 opacity-40 animate-pulse" />
+          <h3 className="text-white font-bold text-lg mb-2">No Vibes Found</h3>
+          <p className="text-white/40 text-sm max-w-xs mb-6">
+            There are no vibes posted in this category yet. Be the first to share one!
+          </p>
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#B026FF] to-[#00F0FF] text-white font-bold text-sm shadow-lg shadow-[#B026FF]/30 active:scale-95 transition-transform"
+          >
+            Create a Vibe
+          </button>
+        </div>
         <VibeCreateSheet
           isOpen={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
@@ -859,7 +888,7 @@ export default function VibesScreen() {
   return (
     <div ref={containerRef} className="relative w-full h-full min-h-[500px] bg-black overflow-hidden flex flex-col">
       {/* Filter tabs — top overlay */}
-      <div className="absolute top-0 left-0 right-0 z-30 pt-2">
+      <div className="absolute top-7 left-0 right-0 z-30">
         <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar pb-1">
           {FILTERS.map(f => (
             <button
@@ -894,6 +923,8 @@ export default function VibesScreen() {
               onToggleMute={() => setMuted(m => !m)}
               onNext={goNext}
               onPrev={goPrev}
+              total={vibes.length}
+              current={currentIdx}
             />
           </div>
         ))}
@@ -911,7 +942,7 @@ export default function VibesScreen() {
       </div>
 
       {/* Counter pill */}
-      <div className="absolute top-14 right-4 z-30 bg-black/50 backdrop-blur rounded-full px-2.5 py-1 text-[10px] text-white/60 font-bold pointer-events-none">
+      <div className="absolute top-16 right-4 z-30 bg-black/50 backdrop-blur rounded-full px-2.5 py-1 text-[10px] text-white/60 font-bold pointer-events-none">
         {currentIdx + 1} / {vibes.length}
       </div>
 
