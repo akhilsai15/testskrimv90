@@ -115,7 +115,17 @@ function SwipeableChatRow({ chat, onClick }: { chat: any, onClick: any, key?: Re
                 {/* Center Info */}
                 <div className="flex-1 min-w-0 pr-2 pb-0.5 pt-0.5 flex flex-col justify-between h-[44px]">
                     <div className="flex items-center">
-                        <h3 className="text-[15px] font-bold text-white truncate max-w-[80%] leading-tight">{chat.name}</h3>
+                        <h3 
+                          onClick={(e) => {
+                            if (!chat.isGroup && chat.username) {
+                              e.stopPropagation();
+                              navigate(`/profile/${chat.username}`);
+                            }
+                          }}
+                          className={`text-[15px] font-bold text-white truncate max-w-[80%] leading-tight ${!chat.isGroup && chat.username ? 'hover:text-[#B026FF] hover:underline cursor-pointer' : ''}`}
+                        >
+                          {chat.name}
+                        </h3>
                         <div className="ml-2 mt-[1px]">
                           {(() => {
                             const flow = getBond(chat.id);
@@ -438,7 +448,16 @@ export default function ConnectScreen() {
                           
                           {/* Top Avatar with pulsing emerald border */}
                           <div className="absolute top-3 left-3 z-20">
-                            <div className="relative w-9 h-9">
+                            <div 
+                              className="relative w-9 h-9 cursor-pointer hover:scale-105 transition-transform"
+                              onClick={(e) => {
+                                if (contact.username) {
+                                  e.stopPropagation();
+                                  navigate(`/profile/${contact.username}`);
+                                }
+                              }}
+                              title="View Profile"
+                            >
                               <div className="absolute inset-[-2px] rounded-full border-2 border-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.5)] animate-pulse" style={{ animationDuration: '2.5s' }} />
                               <img src={contact.avatar} className="w-full h-full rounded-full border border-black/50 object-cover relative z-10 bg-zinc-800" alt={contact.name} />
                               <div className="absolute right-0 bottom-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#161622] z-20" />
@@ -602,14 +621,35 @@ export default function ConnectScreen() {
                   onClick={() => { setShowNewChatPicker(false); navigate(`/chat/${person.id}`); }}
                   className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-colors text-left"
                 >
-                  <div className="relative shrink-0">
+                  <div 
+                    className="relative shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={(e) => {
+                      if (person.username) {
+                        e.stopPropagation();
+                        setShowNewChatPicker(false);
+                        navigate(`/profile/${person.username}`);
+                      }
+                    }}
+                    title="View Profile"
+                  >
                     <img src={person.avatar} alt={person.name} className="w-12 h-12 rounded-full object-cover" />
                     {person.online && (
                       <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-skrim-bg" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-white font-semibold text-sm truncate">{person.name}</div>
+                    <div 
+                      onClick={(e) => {
+                        if (person.username) {
+                          e.stopPropagation();
+                          setShowNewChatPicker(false);
+                          navigate(`/profile/${person.username}`);
+                        }
+                      }}
+                      className="text-white font-semibold text-sm truncate hover:text-[#B026FF] hover:underline cursor-pointer"
+                    >
+                      {person.name}
+                    </div>
                     <div className="text-white/40 text-xs truncate">{person.online ? 'Online' : 'Offline'}</div>
                   </div>
                 </button>

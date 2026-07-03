@@ -377,6 +377,29 @@ const AudioCallScreen = () => {
 
       {renderTopBar()}
 
+      {/* Added Participants Overlay */}
+      {store.state === "active" && store.addedContacts.length > 0 && (
+        <div className="absolute top-24 right-6 z-40 flex flex-col gap-2">
+          <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest text-right mr-1">In Call</p>
+          <div className="flex flex-col gap-2 items-end">
+            {store.addedContacts.map((contact) => (
+              <motion.div
+                initial={{ opacity: 0, x: 20, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                key={contact.id}
+                className="flex items-center gap-2.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg"
+              >
+                <div className="relative">
+                  <img src={contact.avatar || ""} className="w-8 h-8 rounded-full border border-white/20 object-cover" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border border-black" />
+                </div>
+                <span className="text-white text-xs font-semibold pr-1">{contact.name}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full h-full pb-32">
         {/* OUTGOING / CONNECTING STATE */}
         {(store.state === "outgoing" || store.state === "connecting") && (
@@ -686,7 +709,7 @@ const AudioCallScreen = () => {
         {/* Add User Modal */}
         <AnimatePresence>
           {showAddUserModal && (
-            <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+            <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" onClick={() => setShowAddUserModal(false)}>
               <motion.div
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
