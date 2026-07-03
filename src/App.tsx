@@ -290,7 +290,7 @@ function MainAppLayout() {
         </div>
 
         <div className="w-[320px] h-full flex flex-col overflow-y-auto no-scrollbar bg-skrim-bg border-l border-white/5 p-4 shrink-0 gap-6">
-          <div className="bg-[#141414] rounded-2xl border border-white/5 p-4 flex flex-col">
+          <div className="bg-[#141414] rounded-2xl border border-white/5 p-4 flex flex-col shrink-0">
             <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30 mb-3">
               Connect
             </h3>
@@ -347,29 +347,7 @@ function MainAppLayout() {
             </div>
           </div>
 
-          <div className="bg-[#1F1F1F] rounded-2xl border border-white/5 p-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-3">
-              <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse"></div>
-            </div>
-            <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-[#00F0FF] mb-1">
-              Link Now
-            </h3>
-            <p className="text-xs font-medium text-white/80 mb-3">
-              Web3 Builders Room
-            </p>
-            <div className="flex -space-x-2 mb-3">
-              <img src="https://i.pravatar.cc/150?img=15" className="w-8 h-8 rounded-full border-2 border-[#1F1F1F] object-cover" alt="user" />
-              <img src="https://i.pravatar.cc/150?img=16" className="w-8 h-8 rounded-full border-2 border-[#1F1F1F] object-cover" alt="user" />
-              <img src="https://i.pravatar.cc/150?img=17" className="w-8 h-8 rounded-full border-2 border-[#1F1F1F] object-cover" alt="user" />
-              <div className="w-8 h-8 rounded-full bg-white/10 border-2 border-[#1F1F1F] flex items-center justify-center text-[9px] font-bold">+12</div>
-            </div>
-            <button className="px-3 py-1.5 bg-white/10 hover:bg-white/20 transition border border-white/10 rounded-lg text-[10px] font-bold flex items-center space-x-1.5 w-fit">
-              <span className="text-[#00F0FF]">▶</span>
-              <span>Join Call</span>
-            </button>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#0A0A0A] to-[#141414] rounded-2xl border border-white/5 p-4 flex flex-col items-center justify-center text-center">
+          <div className="bg-gradient-to-br from-[#0A0A0A] to-[#141414] rounded-2xl border border-white/5 p-4 flex flex-col items-center justify-center text-center shrink-0">
             <div className="w-10 h-10 rounded-full bg-[#1F1F1F] border border-white/10 flex items-center justify-center mb-2">
               <span className="text-xl opacity-80 mt-0.5">
                 <Lock className="w-5 h-5 text-gray-400" />
@@ -389,7 +367,7 @@ function MainAppLayout() {
             </Link>
           </div>
 
-          <div className="rounded-2xl border border-white/5 overflow-hidden relative group h-40">
+          <div className="rounded-2xl border border-white/5 overflow-hidden relative group h-40 shrink-0">
             <img
               src="https://picsum.photos/400/800?random=vibe"
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
