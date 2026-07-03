@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Lock, Search, Edit, MessageCircle, CheckCircle, XCircle, Play, Zap, Settings, Pin, Users, Megaphone, ArrowLeft } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Lock, Search, Edit, MessageCircle, CheckCircle, XCircle, Play, Zap, Settings, Pin, Users, Megaphone, ArrowLeft, Mic, Volume2, VolumeX, Square, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GlassCard } from '../components/ui';
 import { getChats } from '../lib/mock/mockServices';
@@ -246,7 +246,7 @@ export default function ConnectScreen() {
 
   // STORY STATES & LOGIC
   const currentUser = useCurrentUser();
-  const [userStory, setUserStory] = useState<{ emoji: string; text: string; caption: string } | null>(() => {
+  const [userStory, setUserStory] = useState<{ emoji: string; text: string; caption: string; audio?: { type: 'mic' | 'synth'; data?: string; preset?: string } } | null>(() => {
     const stored = localStorage.getItem('skrimchat_user_story');
     if (stored) {
       try {
@@ -263,6 +263,17 @@ export default function ConnectScreen() {
   const [customEmoji, setCustomEmoji] = useState('⚡');
   const [customCaption, setCustomCaption] = useState('');
 
+  // Audio Recording & Synthesizer States
+  const [selectedAudioOption, setSelectedAudioOption] = useState<'none' | 'mic' | 'synth'>('none');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [tempAudioUrl, setTempAudioUrl] = useState<string | null>(null);
+  const [recordedBase64, setRecordedBase64] = useState<string | null>(null);
+  
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<any>(null);
+
   const PRESET_STORIES = [
     { text: 'COOKING', emoji: '🍲', label: 'Cooking' },
     { text: 'SELFIE', emoji: '🌸', label: 'Selfie' },
@@ -273,6 +284,158 @@ export default function ConnectScreen() {
     { text: 'REEL EDIT', emoji: '🎬', label: 'Reel Edit' },
     { text: 'CRAMMING', emoji: '📚', label: 'Cramming' },
   ];
+
+  const playSynthMelody = (preset: string) => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return null;
+      const ctx = new AudioContextClass();
+      const now = ctx.currentTime;
+      
+      const playTone = (freq: number, start: number, duration: number, type: OscillatorType = 'sine') => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        
+        gain.gain.setValueAtTime(0.12, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + duration);
+      };
+
+      const cleanPreset = preset.toUpperCase().trim();
+      switch (cleanPreset) {
+        case 'COOKING':
+          for (let i = 0; i < 6; i++) {
+            playTone(450 + (i * 90), now + i * 0.12, 0.15, 'triangle');
+          }
+          break;
+        case 'CRAMMING':
+          playTone(200, now, 0.35, 'sine');
+          playTone(220, now + 0.3, 0.35, 'sine');
+          playTone(240, now + 0.6, 0.5, 'sine');
+          break;
+        case 'CHAI TIME':
+          playTone(261.63, now, 0.6, 'sine'); // C4
+          playTone(329.63, now + 0.08, 0.5, 'sine'); // E4
+          playTone(392.00, now + 0.16, 0.4, 'sine'); // G4
+          playTone(523.25, now + 0.24, 0.5, 'sine'); // C5
+          break;
+        case 'GYM SELFIE':
+          playTone(260, now, 0.12, 'sawtooth');
+          playTone(320, now + 0.12, 0.12, 'sawtooth');
+          playTone(390, now + 0.24, 0.12, 'sawtooth');
+          playTone(520, now + 0.36, 0.35, 'sawtooth');
+          break;
+        case 'SAMOSAS':
+          playTone(392, now, 0.15, 'triangle'); // G4
+          playTone(440, now + 0.15, 0.15, 'triangle'); // A4
+          playTone(494, now + 0.3, 0.15, 'triangle'); // B4
+          playTone(587, now + 0.45, 0.3, 'triangle'); // D5
+          break;
+        case 'IN LOBBY':
+          playTone(523.25, now, 0.08, 'square');
+          playTone(659.25, now + 0.08, 0.08, 'square');
+          playTone(783.99, now + 0.16, 0.08, 'square');
+          playTone(1046.50, now + 0.24, 0.25, 'square');
+          break;
+        case 'SELFIE':
+          playTone(880, now, 0.08, 'sine');
+          playTone(1174, now + 0.08, 0.08, 'sine');
+          playTone(1396, now + 0.16, 0.12, 'sine');
+          playTone(1760, now + 0.24, 0.35, 'sine');
+          break;
+        case 'REEL EDIT': {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(1100, now + 0.6);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.linearRampToValueAtTime(0.001, now + 0.6);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.6);
+          break;
+        }
+        default:
+          playTone(440, now, 0.4, 'sine');
+          playTone(554, now + 0.15, 0.35, 'sine');
+          playTone(659, now + 0.3, 0.35, 'sine');
+          playTone(880, now + 0.45, 0.5, 'sine');
+          break;
+      }
+      return ctx;
+    } catch (err) {
+      console.warn("AudioContext blocked or failed", err);
+      return null;
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      audioChunksRef.current = [];
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const blobUrl = URL.createObjectURL(audioBlob);
+        setTempAudioUrl(blobUrl);
+
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          setRecordedBase64(reader.result as string);
+        };
+
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prev => {
+          if (prev >= 8) {
+            clearInterval(recordingIntervalRef.current);
+            stopRecording();
+            return 8;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (err) {
+      console.error("Microphone record error:", err);
+      showToast("❌ Mic blocked or unavailable. Trying 'Synth Chime' fallback!");
+      setSelectedAudioOption('synth');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    setIsRecording(false);
+  };
 
   const getCaptionForActivity = (activityText: string, name: string) => {
     switch (activityText) {
@@ -301,12 +464,18 @@ export default function ConnectScreen() {
     }
   };
 
-  const handleCreateStory = (emoji: string, text: string, caption: string) => {
-    const newStory = { emoji, text, caption };
+  const handleCreateStory = (emoji: string, text: string, caption: string, audioData?: any) => {
+    const newStory = { emoji, text, caption, audio: audioData };
     setUserStory(newStory);
     localStorage.setItem('skrimchat_user_story', JSON.stringify(newStory));
     setShowCreateStoryModal(false);
     showToast('⚡ Story created! Your friends can see your vibe now.');
+    
+    // Reset states
+    setSelectedAudioOption('none');
+    setRecordedBase64(null);
+    setTempAudioUrl(null);
+    setRecordingDuration(0);
   };
 
   const handleDeleteStory = () => {
@@ -528,7 +697,8 @@ export default function ConnectScreen() {
                             emoji: userStory.emoji,
                             text: userStory.text,
                             caption: userStory.caption || '',
-                            isMe: true
+                            isMe: true,
+                            audio: userStory.audio
                           });
                         } else {
                           setShowCreateStoryModal(true);
@@ -557,12 +727,17 @@ export default function ConnectScreen() {
                         )}
                       </div>
 
-                      {/* Top right story emoji badge */}
+                      {/* Top right story emoji & audio badge */}
                       {userStory && (
-                        <div className="absolute top-3 right-3 z-20">
+                        <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 items-end">
                           <div className="w-6 h-6 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-xs shadow-md">
                             {userStory.emoji}
                           </div>
+                          {userStory.audio && (
+                            <div className="w-5 h-5 rounded-full bg-[#B026FF]/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-[10px] text-white shadow-md animate-bounce" style={{ animationDuration: '1.8s' }}>
+                              🔊
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -592,7 +767,8 @@ export default function ConnectScreen() {
                               emoji: activity.emoji,
                               text: activity.text,
                               caption: caption,
-                              isMe: false
+                              isMe: false,
+                              audio: { type: 'synth', preset: activity.text }
                             });
                           }}
                           className="relative w-[105px] h-[150px] rounded-2xl overflow-hidden shrink-0 cursor-pointer border border-white/10 bg-[#161622] shadow-[0_8px_24px_rgba(0,0,0,0.4)] group/story snap-start transition-all"
@@ -839,7 +1015,7 @@ export default function ConnectScreen() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-[#161622] border border-white/10 rounded-3xl overflow-hidden p-6 shadow-2xl"
+              className="relative w-full max-w-md bg-[#161622] border border-white/10 rounded-3xl overflow-hidden p-6 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar"
             >
               {/* Top header */}
               <div className="flex justify-between items-center mb-6">
@@ -860,7 +1036,7 @@ export default function ConnectScreen() {
                   <button
                     key={preset.text}
                     onClick={() => {
-                      handleCreateStory(preset.emoji, preset.text, getCaptionForActivity(preset.text, currentUser?.displayName || 'You'));
+                      handleCreateStory(preset.emoji, preset.text, getCaptionForActivity(preset.text, currentUser?.displayName || 'You'), { type: 'synth', preset: preset.text });
                     }}
                     className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-[#B026FF]/40 text-left transition-all group"
                   >
@@ -880,7 +1056,15 @@ export default function ConnectScreen() {
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!customVibe.trim()) return;
-                    handleCreateStory(customEmoji, customVibe.toUpperCase().trim(), customCaption.trim());
+
+                    let audioData = undefined;
+                    if (selectedAudioOption === 'mic' && recordedBase64) {
+                      audioData = { type: 'mic', data: recordedBase64 };
+                    } else if (selectedAudioOption === 'synth') {
+                      audioData = { type: 'synth', preset: customVibe.toUpperCase().trim() };
+                    }
+
+                    handleCreateStory(customEmoji, customVibe.toUpperCase().trim(), customCaption.trim(), audioData);
                     setCustomVibe('');
                     setCustomCaption('');
                   }}
@@ -928,6 +1112,111 @@ export default function ConnectScreen() {
                     />
                   </div>
 
+                  {/* Audio Vibe Clip Section */}
+                  <div className="flex flex-col gap-1.5 border-t border-white/5 pt-4">
+                    <label className="text-[10px] text-white/40 font-bold font-mono tracking-wider">ATTACH AUDIO VIBE CLIP (OPTIONAL)</label>
+                    <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/5">
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedAudioOption('none'); stopRecording(); }}
+                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${selectedAudioOption === 'none' ? 'bg-[#B026FF]/20 text-[#B026FF] border border-[#B026FF]/20' : 'text-white/60'}`}
+                      >
+                        None
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedAudioOption('mic'); }}
+                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${selectedAudioOption === 'mic' ? 'bg-[#B026FF]/20 text-[#B026FF] border border-[#B026FF]/20' : 'text-white/60'}`}
+                      >
+                        <Mic className="w-3 h-3" /> Mic Note
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedAudioOption('synth'); stopRecording(); }}
+                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${selectedAudioOption === 'synth' ? 'bg-[#B026FF]/20 text-[#B026FF] border border-[#B026FF]/20' : 'text-white/60'}`}
+                      >
+                        <Zap className="w-3 h-3" /> Chime Synth
+                      </button>
+                    </div>
+
+                    {/* Mic Option details */}
+                    {selectedAudioOption === 'mic' && (
+                      <div className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col items-center gap-2.5 mt-2">
+                        {isRecording ? (
+                          <div className="flex items-center gap-3">
+                            <span className="relative flex h-3.5 w-3.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500"></span>
+                            </span>
+                            <span className="text-white text-xs font-black font-mono">RECORDING Voice Clip... {recordingDuration}s / 8s</span>
+                            <button
+                              type="button"
+                              onClick={stopRecording}
+                              className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-[11px] font-extrabold rounded-lg uppercase tracking-wider"
+                            >
+                              Stop
+                            </button>
+                          </div>
+                        ) : recordedBase64 ? (
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-emerald-400 font-extrabold font-mono">✓ VOICE NOTE READY</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (tempAudioUrl) {
+                                    const audio = new Audio(tempAudioUrl);
+                                    audio.play().catch(e => console.warn(e));
+                                  }
+                                }}
+                                className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] font-extrabold rounded-md flex items-center gap-1"
+                              >
+                                Play Preview
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRecordedBase64(null);
+                                setTempAudioUrl(null);
+                              }}
+                              className="text-red-400 hover:text-red-300 text-xs font-bold"
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={startRecording}
+                            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-white/20 hover:border-[#B026FF] text-white hover:text-[#B026FF] text-xs font-extrabold transition-all bg-white/[0.02]"
+                          >
+                            <Mic className="w-4 h-4" /> Start Recording Voice Note
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Synth Option details */}
+                    {selectedAudioOption === 'synth' && (
+                      <div className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col items-center gap-2 mt-2 text-center">
+                        <span className="text-[11px] text-[#00F0FF] font-black font-mono uppercase tracking-widest">✨ CHIME SYNTHESIZER ACTIVE</span>
+                        <span className="text-[11px] text-white/50 leading-normal max-w-xs">
+                          Generates a cute instrumental chiptune sequence matched to your vibe title!
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playSynthMelody(customVibe || 'VIBING');
+                          }}
+                          className="px-3 py-1.5 bg-[#B026FF]/20 hover:bg-[#B026FF]/30 border border-[#B026FF]/30 text-white text-[10px] font-extrabold rounded-lg flex items-center gap-1.5 mt-1"
+                        >
+                          🔊 Test Sound Preview
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <button
                     type="submit"
                     disabled={!customVibe.trim()}
@@ -968,13 +1257,171 @@ interface StoryViewerOverlayProps {
   onReact: (username: string, emoji: string) => void;
 }
 
+function SoundwaveBars({ active }: { active: boolean }) {
+  return (
+    <div className="flex items-end justify-center gap-0.5 h-4 px-1">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <motion.div
+          key={i}
+          animate={
+            active
+              ? { height: [4, 14, 8, 16, 6][i % 5] }
+              : { height: 3 }
+          }
+          transition={{
+            duration: 0.4 + i * 0.08,
+            repeat: active ? Infinity : 0,
+            repeatType: "reverse",
+          }}
+          className="w-0.5 bg-gradient-to-t from-[#B026FF] to-[#00F0FF] rounded-full"
+          style={{ originY: 1 }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function StoryViewerOverlay({ story, onClose, onDelete, onReply, onReact }: StoryViewerOverlayProps) {
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [replyText, setReplyText] = useState('');
+  
+  // Audio playback states
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isSynthPlaying, setIsSynthPlaying] = useState(false);
 
+  const localPlaySynthMelody = (preset: string) => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const now = ctx.currentTime;
+      
+      const playTone = (freq: number, start: number, duration: number, type: OscillatorType = 'sine') => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        
+        gain.gain.setValueAtTime(0.12, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + duration);
+      };
+
+      const cleanPreset = preset.toUpperCase().trim();
+      switch (cleanPreset) {
+        case 'COOKING':
+          for (let i = 0; i < 6; i++) {
+            playTone(450 + (i * 90), now + i * 0.12, 0.15, 'triangle');
+          }
+          break;
+        case 'CRAMMING':
+          playTone(200, now, 0.35, 'sine');
+          playTone(220, now + 0.3, 0.35, 'sine');
+          playTone(240, now + 0.6, 0.5, 'sine');
+          break;
+        case 'CHAI TIME':
+          playTone(261.63, now, 0.6, 'sine');
+          playTone(329.63, now + 0.08, 0.5, 'sine');
+          playTone(392.00, now + 0.16, 0.4, 'sine');
+          playTone(523.25, now + 0.24, 0.5, 'sine');
+          break;
+        case 'GYM SELFIE':
+          playTone(260, now, 0.12, 'sawtooth');
+          playTone(320, now + 0.12, 0.12, 'sawtooth');
+          playTone(390, now + 0.24, 0.12, 'sawtooth');
+          playTone(520, now + 0.36, 0.35, 'sawtooth');
+          break;
+        case 'SAMOSAS':
+          playTone(392, now, 0.15, 'triangle');
+          playTone(440, now + 0.15, 0.15, 'triangle');
+          playTone(494, now + 0.3, 0.15, 'triangle');
+          playTone(587, now + 0.45, 0.3, 'triangle');
+          break;
+        case 'IN LOBBY':
+          playTone(523.25, now, 0.08, 'square');
+          playTone(659.25, now + 0.08, 0.08, 'square');
+          playTone(783.99, now + 0.16, 0.08, 'square');
+          playTone(1046.50, now + 0.24, 0.25, 'square');
+          break;
+        case 'SELFIE':
+          playTone(880, now, 0.08, 'sine');
+          playTone(1174, now + 0.08, 0.08, 'sine');
+          playTone(1396, now + 0.16, 0.12, 'sine');
+          playTone(1760, now + 0.24, 0.35, 'sine');
+          break;
+        case 'REEL EDIT': {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(1100, now + 0.6);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.linearRampToValueAtTime(0.001, now + 0.6);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.6);
+          break;
+        }
+        default:
+          playTone(440, now, 0.4, 'sine');
+          playTone(554, now + 0.15, 0.35, 'sine');
+          playTone(659, now + 0.3, 0.35, 'sine');
+          playTone(880, now + 0.45, 0.5, 'sine');
+          break;
+      }
+    } catch (e) {
+      console.warn("Synth playback failed:", e);
+    }
+  };
+
+  const triggerSynth = () => {
+    if (story.audio?.type === 'synth' && story.audio.preset) {
+      setIsSynthPlaying(true);
+      localPlaySynthMelody(story.audio.preset);
+      setTimeout(() => {
+        setIsSynthPlaying(false);
+      }, 1500);
+    }
+  };
+
+  // Trigger synth automatically on mount, or load microphone recording
   useEffect(() => {
-    if (isPaused) return;
+    if (story.audio) {
+      if (story.audio.type === 'synth') {
+        triggerSynth();
+      } else if (story.audio.type === 'mic' && story.audio.data) {
+        const audio = new Audio(story.audio.data);
+        audioRef.current = audio;
+        setIsPlaying(true);
+        audio.play().catch((err) => {
+          console.warn("Autoplay blocked, click play to listen:", err);
+          setIsPlaying(false);
+        });
+
+        audio.onended = () => {
+          setIsPlaying(false);
+        };
+      }
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [story.audio]);
+
+  // Handle progress timer
+  useEffect(() => {
+    if (isPaused || isPlaying) return; // Pause story advancement while mic note is active
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
@@ -987,7 +1434,7 @@ function StoryViewerOverlay({ story, onClose, onDelete, onReply, onReact }: Stor
     }, 50); // 100 * 50ms = 5000ms (5 seconds)
 
     return () => clearInterval(interval);
-  }, [isPaused, onClose]);
+  }, [isPaused, isPlaying, onClose]);
 
   return (
     <div 
@@ -1025,6 +1472,61 @@ function StoryViewerOverlay({ story, onClose, onDelete, onReply, onReact }: Stor
         </div>
       </div>
 
+      {/* Audio Control Floating Badge */}
+      {story.audio && (
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-20 left-1/2 -translate-x-1/2 z-20 bg-[#161622]/90 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full flex items-center gap-3 shadow-2xl"
+        >
+          {story.audio.type === 'mic' ? (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (audioRef.current) {
+                    if (isPlaying) {
+                      audioRef.current.pause();
+                      setIsPlaying(false);
+                    } else {
+                      audioRef.current.play().then(() => setIsPlaying(true)).catch(e => console.warn(e));
+                    }
+                  }
+                }}
+                className="w-7 h-7 rounded-full bg-[#B026FF] hover:bg-[#D869FF] flex items-center justify-center text-white transition-colors cursor-pointer"
+              >
+                {isPlaying ? <Square className="w-3.5 h-3.5 fill-white" /> : <Play className="w-3.5 h-3.5 fill-white ml-0.5" />}
+              </button>
+              <div className="flex flex-col">
+                <span className="text-[8px] font-black tracking-wider text-white/40 font-mono uppercase">VOICE CLIP</span>
+                <span className="text-[10px] font-black text-emerald-400">
+                  {isPlaying ? 'PLAYING NOTE...' : 'PAUSED'}
+                </span>
+              </div>
+              <SoundwaveBars active={isPlaying} />
+            </>
+          ) : (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerSynth();
+                }}
+                className="w-7 h-7 rounded-full bg-[#B026FF] hover:bg-[#D869FF] flex items-center justify-center text-white transition-colors cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5 fill-white" />
+              </button>
+              <div className="flex flex-col">
+                <span className="text-[8px] font-black tracking-wider text-white/40 font-mono uppercase">SYNTH CHIME</span>
+                <span className="text-[10px] font-black text-[#00F0FF] uppercase font-mono tracking-wide">
+                  {story.audio.preset || 'VIBE'}
+                </span>
+              </div>
+              <SoundwaveBars active={isSynthPlaying} />
+            </>
+          )}
+        </div>
+      )}
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col items-center justify-center text-center p-6 select-none">
         {/* Huge glowing pulsing emoji */}
@@ -1055,7 +1557,7 @@ function StoryViewerOverlay({ story, onClose, onDelete, onReply, onReact }: Stor
           <div className="flex justify-center">
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 px-6 py-2.5 rounded-full font-bold text-xs transition-all uppercase tracking-wider"
+              className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 px-6 py-2.5 rounded-full font-bold text-xs transition-all uppercase tracking-wider cursor-pointer"
             >
               Delete My Story
             </button>
@@ -1071,7 +1573,7 @@ function StoryViewerOverlay({ story, onClose, onDelete, onReply, onReact }: Stor
                     e.stopPropagation();
                     onReact(story.username, emoji);
                   }}
-                  className="text-2xl hover:scale-125 active:scale-95 transition-transform bg-white/5 hover:bg-white/10 p-2.5 rounded-full"
+                  className="text-2xl hover:scale-125 active:scale-95 transition-transform bg-white/5 hover:bg-white/10 p-2.5 rounded-full cursor-pointer"
                 >
                   {emoji}
                 </button>
@@ -1097,7 +1599,7 @@ function StoryViewerOverlay({ story, onClose, onDelete, onReply, onReact }: Stor
               <button
                 type="submit"
                 disabled={!replyText.trim()}
-                className="text-[#00F0FF] font-bold text-sm disabled:opacity-40"
+                className="text-[#00F0FF] font-bold text-sm disabled:opacity-40 cursor-pointer"
               >
                 Send
               </button>
