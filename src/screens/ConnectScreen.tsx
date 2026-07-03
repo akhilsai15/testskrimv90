@@ -17,6 +17,7 @@ import { MOCK_CHATS } from '../lib/mock/mockChatDirectory';
 
 
 function SwipeableChatRow({ chat, onClick }: { chat: any, onClick: any, key?: React.Key }) {
+    const navigate = useNavigate();
     const { width } = useWindowDimensions();
     const isMobile = width < 768;
     const [dragX, setDragX] = useState(0);
@@ -87,7 +88,15 @@ function SwipeableChatRow({ chat, onClick }: { chat: any, onClick: any, key?: Re
                 style={{ touchAction: 'pan-y' }}
             >
                 {/* Avatar Area */}
-                <div className="relative shrink-0 w-12 h-12">
+                <div 
+                    className={`relative shrink-0 w-12 h-12 ${!chat.isGroup && chat.username ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                    onClick={(e) => {
+                        if (!chat.isGroup && chat.username) {
+                            e.stopPropagation();
+                            navigate(`/profile/${chat.username}`);
+                        }
+                    }}
+                >
                     {chat.isGroup ? (
                         <div className="relative w-full h-full">
                             <img src={chat.avatar2} className="w-8 h-8 rounded-full absolute top-0 right-0 border-2 border-[#0A0A12] bg-zinc-800" />
@@ -271,7 +280,14 @@ export default function ConnectScreen() {
 
 
   const ACTIVE_USERS = MOCK_CHATS.filter(c => c.online);
-  const ACTIVE_MOCKS = [...ACTIVE_USERS, {id:"a1", name: "Ravi", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=ravi", online: true}, {id:"a2", name: "Jessica", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=jess", online: true}, {id:"a3", name: "Ali", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=ali", online: true}, {id:"a4", name: "Sam", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=sam", online: true}, {id:"a5", name: "Kavya", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=kavya", online: true}];
+  const ACTIVE_MOCKS = [
+    ...ACTIVE_USERS, 
+    { id: "custom_bappu_bhai", name: "Bappu Bhai", username: "bappu_bhai", avatar: "https://i.pravatar.cc/150?img=1", online: true },
+    { id: "custom_sunita_not_astronaut", name: "Sunita W.", username: "sunita_not_astronaut", avatar: "https://i.pravatar.cc/150?img=3", online: true },
+    { id: "custom_chikoo_bhai_official", name: "Chikoo", username: "chikoo_bhai_official", avatar: "https://i.pravatar.cc/150?img=6", online: true },
+    { id: "custom_bablu_ka_garage", name: "Bablu", username: "bablu_ka_garage", avatar: "https://i.pravatar.cc/150?img=8", online: true },
+    { id: "custom_golu_fitness_goals", name: "Golu", username: "golu_fitness_goals", avatar: "https://i.pravatar.cc/150?img=10", online: true }
+  ];
 
   const ALL_CHATS = [...customGroups, ...MOCK_CHATS];
   const totalUnread = ALL_CHATS.reduce((sum, c) => sum + (c.unread || 0), 0);
@@ -370,14 +386,18 @@ export default function ConnectScreen() {
 
                     {/* Active Contacts */}
                     {ACTIVE_MOCKS.map(contact => (
-                       <div key={contact.id} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer w-14">
-                           <div className="relative w-[52px] h-[52px]">
+                       <div 
+                         key={contact.id} 
+                         className="flex flex-col items-center gap-2 shrink-0 cursor-pointer w-14 group/active"
+                         onClick={() => navigate(`/chat/${contact.id}`)}
+                       >
+                           <div className="relative w-[52px] h-[52px] group-hover/active:scale-105 transition-transform duration-200">
                                {/* Neon Ring */}
                                <div className="absolute inset-[-2px] rounded-full border-[2px] border-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.5)] animate-pulse" style={{animationDuration: '3s'}} />
                                <img src={contact.avatar} className="w-full h-full rounded-full bg-white/10 relative z-10" />
                                <div className="absolute right-0 bottom-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-[2.5px] border-[#0A0A12] z-20" />
                            </div>
-                           <span className="text-[10px] text-white font-medium truncate w-14 text-center block">{contact.name}</span>
+                           <span className="text-[10px] text-white font-medium truncate w-14 text-center block group-hover/active:text-emerald-400 transition-colors">{contact.name}</span>
                        </div>
                     ))}
                  </div>

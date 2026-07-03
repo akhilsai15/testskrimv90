@@ -22,6 +22,7 @@ interface Props {
   pinnedCount?: number;
   onPinnedBannerClick?: () => void;
   onGroupSettingsClick?: () => void;
+  onProfileClick?: () => void;
 }
 
 export function ChatHeader({
@@ -39,7 +40,8 @@ export function ChatHeader({
   pinnedText,
   pinnedCount,
   onPinnedBannerClick,
-  onGroupSettingsClick
+  onGroupSettingsClick,
+  onProfileClick
 }: Props) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMoodReactions, setShowMoodReactions] = useState(false);
@@ -73,7 +75,14 @@ export function ChatHeader({
             <ArrowLeft size={24} />
           </button>
           
-          <div className="flex items-center gap-3">
+          <div 
+            className={`flex items-center gap-3 ${onProfileClick && !isGroup ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
+            onClick={() => {
+              if (onProfileClick && !isGroup) {
+                onProfileClick();
+              }
+            }}
+          >
             <div
               className="rounded-full p-[2px] shrink-0"
               style={

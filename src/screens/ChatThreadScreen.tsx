@@ -62,7 +62,7 @@ export default function ChatThreadScreen() {
   // Resolve who this chat is actually with, based on the :id route param,
   // instead of hardcoding a single name for every conversation.
   const resolvedChat = getChatById(chatId);
-  const recipientUser = { displayName: resolvedChat.displayName, avatar: resolvedChat.avatar };
+  const recipientUser = { displayName: resolvedChat.displayName, avatar: resolvedChat.avatar, username: resolvedChat.username };
   const isGroupChat = resolvedChat.isGroup;
 
   const [messages, setMessages] = useState<Message[]>(() => {
@@ -704,6 +704,11 @@ export default function ChatThreadScreen() {
         onBondClick={() => bond && setShowSparkDetail(true)}
         isGroup={isGroupChat}
         onGroupSettingsClick={() => setShowGroupSettings(true)}
+        onProfileClick={() => {
+          if (!isGroupChat && recipientUser.username) {
+            navigate(`/profile/${recipientUser.username}`);
+          }
+        }}
         pinnedText={pinnedMessages.length > 0 ? (pinnedMessages[pinnedIndex % pinnedMessages.length].type === 'text' ? (pinnedMessages[pinnedIndex % pinnedMessages.length] as any).text : '📎 Media') : undefined}
         pinnedCount={pinnedMessages.length}
         onPinnedBannerClick={() => { if (pinnedMessages.length > 1) setPinnedIndex(i => (i + 1) % pinnedMessages.length); }}
